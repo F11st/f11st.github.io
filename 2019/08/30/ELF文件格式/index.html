@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="ELF文件结构ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ELF文件格式">
+<meta property="og:url" content="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/index.html">
+<meta property="og:site_name" content="F11st&#39;s Safety Journey">
+<meta property="og:description" content="ELF文件结构ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png">
+<meta property="og:image" content="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/text_segment.png">
+<meta property="article:published_time" content="2019-08-30T05:02:30.000Z">
+<meta property="article:modified_time" content="2020-10-29T08:22:39.851Z">
+<meta property="article:author" content="F11st">
+<meta property="article:tag" content="PWN">
+<meta property="article:tag" content="ELF">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png">
+
+<link rel="canonical" href="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ELF文件格式 | F11st's Safety Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">F11st's Safety Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="F11st">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="F11st's Safety Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ELF文件格式
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-30 13:02:30" itemprop="dateCreated datePublished" datetime="2019-08-30T13:02:30+08:00">2019-08-30</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-10-29 16:22:39" itemprop="dateModified" datetime="2020-10-29T16:22:39+08:00">2020-10-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/PWN/" itemprop="url" rel="index"><span itemprop="name">PWN</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="ELF文件结构"><a href="#ELF文件结构" class="headerlink" title="ELF文件结构"></a>ELF文件结构</h1><p>ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。</p>
+<a id="more"></a>
+
+<p>其内容视图主要有两种</p>
+<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png" class="" title="Link View">
+<p>以链接视图来分析ELF的文件格式</p>
+<ul>
+<li>ELF Header -&gt; 存放ELF文件的整体信息</li>
+<li>Program Header Table -&gt; 存放程序执行时所需要的信息。其实就是段信息</li>
+<li>Section -&gt; 存放程序大部分信息：指令、数据、符号表等等</li>
+<li>Section Header Table -&gt; 存放描述节区的信息</li>
+</ul>
+<h1 id="ELF-Header"><a href="#ELF-Header" class="headerlink" title="ELF Header"></a>ELF Header</h1><p>用于索引ELF全部的信息，其数据结构如下（数据结构可以在/usr/include/elf.h查看）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* The ELF file header.  This appears at the start of every ELF file.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">char</span>	e_ident[EI_NIDENT];	<span class="comment">/* Magic number and other info */</span></span><br><span class="line">  Elf32_Half	e_type;			<span class="comment">/* Object file type */</span></span><br><span class="line">  Elf32_Half	e_machine;		<span class="comment">/* Architecture */</span></span><br><span class="line">  Elf32_Word	e_version;		<span class="comment">/* Object file version */</span></span><br><span class="line">  Elf32_Addr	e_entry;		<span class="comment">/* Entry point virtual address */</span></span><br><span class="line">  Elf32_Off	e_phoff;		<span class="comment">/* Program header table file offset */</span></span><br><span class="line">  Elf32_Off	e_shoff;		<span class="comment">/* Section header table file offset */</span></span><br><span class="line">  Elf32_Word	e_flags;		<span class="comment">/* Processor-specific flags */</span></span><br><span class="line">  Elf32_Half	e_ehsize;		<span class="comment">/* ELF header size in bytes */</span></span><br><span class="line">  Elf32_Half	e_phentsize;		<span class="comment">/* Program header table entry size */</span></span><br><span class="line">  Elf32_Half	e_phnum;		<span class="comment">/* Program header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shentsize;		<span class="comment">/* Section header table entry size */</span></span><br><span class="line">  Elf32_Half	e_shnum;		<span class="comment">/* Section header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shstrndx;		<span class="comment">/* Section header string table index */</span></span><br><span class="line">&#125; Elf32_Ehdr;</span><br></pre></td></tr></table></figure>
+<p>只了解其中部分含义</p>
+<h2 id="e-ident"><a href="#e-ident" class="headerlink" title="e_ident"></a>e_ident</h2><p>其下标含义如下</p>
+<table>
+<thead>
+<tr>
+<th>宏名称</th>
+<th>下标</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EI_MAG0</td>
+<td>0</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>1</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>2</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>3</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_CLASS</td>
+<td>4</td>
+<td>文件类</td>
+</tr>
+<tr>
+<td>EI_DATA</td>
+<td>5</td>
+<td>数据编码</td>
+</tr>
+<tr>
+<td>EI_VERSION</td>
+<td>6</td>
+<td>文件版本</td>
+</tr>
+<tr>
+<td>EI_PAD</td>
+<td>7</td>
+<td>补齐字节开始处</td>
+</tr>
+</tbody></table>
+<p>下标0-3称为魔数标识ELF文件<br>下标4<strong>EI_CLASS</strong>定义ELF类型，有以下取值</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ELFCLASSNONE</td>
+<td>0</td>
+<td>无效类型</td>
+</tr>
+<tr>
+<td>ELFCLASS32</td>
+<td>1</td>
+<td>32 位文件</td>
+</tr>
+<tr>
+<td>ELFCLASS64</td>
+<td>2</td>
+<td>64 位文件</td>
+</tr>
+</tbody></table>
+<p>下标5 <strong>EI_DATA</strong> 定义大小端模式，有以下取值</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ELFDATANONE</td>
+<td>0</td>
+<td>无效数据编码</td>
+</tr>
+<tr>
+<td>ELFDATA2LSB</td>
+<td>1</td>
+<td>小端</td>
+</tr>
+<tr>
+<td>ELFDATA2MSB</td>
+<td>2</td>
+<td>大端</td>
+</tr>
+</tbody></table>
+<p>下标6 <strong>EI_DATA</strong>  定义ELF头的版本号，与e_version相同<br>下标7 <strong>EI_PAD</strong>  给出了e_ident中未使用字节的开始地址。这些字节被保留并置为 0；处理目标文件的程序应该忽略它们。如果之后这些字节被使用，EI_PAD 的值就会改变。</p>
+<h2 id="e-phoff"><a href="#e-phoff" class="headerlink" title="e_phoff"></a>e_phoff</h2><p>给出程序头部表在文件中的字节偏移（Program Header table OFFset）。如果文件中没有程序头部表，则为 0。</p>
+<h2 id="e-shoff"><a href="#e-shoff" class="headerlink" title="e_shoff"></a>e_shoff</h2><p>给出节头表在文件中的字节偏移（ Section Header table OFFset ）。如果文件中没有节头表，则为 0。</p>
+<h1 id="Program-Header-Table"><a href="#Program-Header-Table" class="headerlink" title="Program Header Table"></a>Program Header Table</h1><p>其类型为Elf32_Phdr结构体数组，ELF  Header中的 e_phentsize 和 e_phnum 指定了该数组每个元素的大小以及元素个数。数据结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Program segment header.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	p_type;			<span class="comment">/* Segment type */</span></span><br><span class="line">  Elf32_Off	p_offset;		<span class="comment">/* Segment file offset */</span></span><br><span class="line">  Elf32_Addr	p_vaddr;		<span class="comment">/* Segment virtual address */</span></span><br><span class="line">  Elf32_Addr	p_paddr;		<span class="comment">/* Segment physical address */</span></span><br><span class="line">  Elf32_Word	p_filesz;		<span class="comment">/* Segment size in file */</span></span><br><span class="line">  Elf32_Word	p_memsz;		<span class="comment">/* Segment size in memory */</span></span><br><span class="line">  Elf32_Word	p_flags;		<span class="comment">/* Segment flags */</span></span><br><span class="line">  Elf32_Word	p_align;		<span class="comment">/* Segment alignment */</span></span><br><span class="line">&#125; Elf32_Phdr;</span><br></pre></td></tr></table></figure>
+<p>前面说过其实这个表就是存放段信息的，暂且先了解p_type，p_offset字段</p>
+<h2 id="p-type"><a href="#p-type" class="headerlink" title="p_type"></a>p_type</h2><p>描述段类型，具体取值如下</p>
+<table>
+<thead>
+<tr>
+<th>名字</th>
+<th>取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PT_NULL</td>
+<td>0</td>
+<td>表明段未使用，其结构中其他成员都是未定义的。</td>
+</tr>
+<tr>
+<td>PT_LOAD</td>
+<td>1</td>
+<td>此类型段为一个可加载的段，大小由 p_filesz 和 p_memsz 描述。文件中的字节被映射到相应内存段开始处。如果 p_memsz 大于 p_filesz，“剩余” 的字节都要被置为 0。p_filesz 不能大于 p_memsz。可加载的段在程序头部中按照 p_vaddr 的升序排列。</td>
+</tr>
+<tr>
+<td>PT_DYNAMIC</td>
+<td>2</td>
+<td>此类型段给出动态链接信息。</td>
+</tr>
+<tr>
+<td>PT_INTERP</td>
+<td>3</td>
+<td>此类型段给出了一个以 NULL 结尾的字符串的位置和长度，该字符串将被当作解释器调用。这种段类型仅对可执行文件有意义（也可能出现在共享目标文件中）。此外，这种段在一个文件中最多出现一次。而且这种类型的段存在的话，它必须在所有可加载段项的前面。</td>
+</tr>
+<tr>
+<td>PT_NOTE</td>
+<td>4</td>
+<td>此类型段给出附加信息的位置和大小。</td>
+</tr>
+<tr>
+<td>PT_SHLIB</td>
+<td>5</td>
+<td>该段类型被保留，不过语义未指定。而且，包含这种类型的段的程序不符合 ABI 标准。</td>
+</tr>
+<tr>
+<td>PT_PHDR</td>
+<td>6</td>
+<td>该段类型的数组元素如果存在的话，则给出了程序头部表自身的大小和位置，既包括在文件中也包括在内存中的信息。此类型的段在文件中最多出现一次。此外，只有程序头部表是程序的内存映像的一部分时，它才会出现。如果此类型段存在，则必须在所有可加载段项目的前面。</td>
+</tr>
+<tr>
+<td>PT_LOPROC~PT_HIPROC</td>
+<td>0x70000000 ~0x7fffffff</td>
+<td>此范围的类型保留给处理器专用语义。</td>
+</tr>
+</tbody></table>
+<h2 id="p-offset"><a href="#p-offset" class="headerlink" title="p_offset"></a>p_offset</h2><p>存放从文件开始到该段开头的第一个字节的偏移</p>
+<h2 id="关于段和节的关系"><a href="#关于段和节的关系" class="headerlink" title="关于段和节的关系"></a>关于段和节的关系</h2><p>简单来说段就是节的集合，段主要在程序装载时起作用。</p>
+<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/text_segment.png" class="" title="text segment">
+
+
+
+<ul>
+<li>有执行功能的代码指令流和只读属性的数据节组合成只读代码段。</li>
+<li>可修改的数据变量，和动态调用的相对地址寻址入口组合成读写数据段。</li>
+<li>不同的段来说可能会有所重合，即不同的段包含相同的节</li>
+</ul>
+<h1 id="Section-Header-Table"><a href="#Section-Header-Table" class="headerlink" title="Section Header Table"></a>Section Header Table</h1><p>其类型为ELF32_Shdr结构体数组，存放节信息。其数据结构如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Section header.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	sh_name;		<span class="comment">/* Section name (string tbl index) */</span></span><br><span class="line">  Elf32_Word	sh_type;		<span class="comment">/* Section type */</span></span><br><span class="line">  Elf32_Word	sh_flags;		<span class="comment">/* Section flags */</span></span><br><span class="line">  Elf32_Addr	sh_addr;		<span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf32_Off	sh_offset;		<span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf32_Word	sh_size;		<span class="comment">/* Section size in bytes */</span></span><br><span class="line">  Elf32_Word	sh_link;		<span class="comment">/* Link to another section */</span></span><br><span class="line">  Elf32_Word	sh_info;		<span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf32_Word	sh_addralign;		<span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf32_Word	sh_entsize;		<span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf32_Shdr;</span><br></pre></td></tr></table></figure>
+<p>还是先了解部分字段</p>
+<h2 id="sh-type"><a href="#sh-type" class="headerlink" title="sh_type"></a>sh_type</h2><table>
+<thead>
+<tr>
+<th>名称</th>
+<th>取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SHT_NULL</td>
+<td>0</td>
+<td>该类型节区是非活动的，这种类型的节头中的其它成员取值无意义。</td>
+</tr>
+<tr>
+<td>SHT_PROGBITS</td>
+<td>1</td>
+<td>该类型节区包含程序定义的信息，它的格式和含义都由程序来决定。</td>
+</tr>
+<tr>
+<td>SHT_SYMTAB</td>
+<td>2</td>
+<td>该类型节区包含一个符号表（SYMbol TABle）。目前目标文件对每种类型的</td>
+</tr>
+<tr>
+<td>SHT_STRTAB</td>
+<td>3</td>
+<td>该类型节区包含字符串表（ STRing TABle ）。</td>
+</tr>
+<tr>
+<td>SHT_RELA</td>
+<td>4</td>
+<td>该类型节区包含显式指定位数的重定位项（ RELocation entry with Addends ），例如，32 位目标文件中的 Elf32_Rela 类型。此外，目标文件可能拥有多个重定位节区。</td>
+</tr>
+<tr>
+<td>SHT_HASH</td>
+<td>5</td>
+<td>该类型节区包含符号哈希表（ HASH table ）。</td>
+</tr>
+<tr>
+<td>SHT_DYNAMIC</td>
+<td>6</td>
+<td>该类型节区包含动态链接的信息（ DYNAMIC linking ）。</td>
+</tr>
+<tr>
+<td>SHT_NOTE</td>
+<td>7</td>
+<td>该类型节区包含以某种方式标记文件的信息（NOTE）。</td>
+</tr>
+<tr>
+<td>SHT_NOBITS</td>
+<td>8</td>
+<td>该类型节区不占用文件的空间，其它方面和 SHT_PROGBITS 相似。尽管该类型节区不包含任何字节，其对应的节头成员 sh_offset 中还是会包含概念性的文件偏移。</td>
+</tr>
+<tr>
+<td>SHT_REL</td>
+<td>9</td>
+<td>该类型节区包含重定位表项（RELocation entry without Addends），不过并没有指定位数。例如，32 位目标文件中的 Elf32_rel 类型。目标文件中可以拥有多个重定位节区。</td>
+</tr>
+<tr>
+<td>SHT_SHLIB</td>
+<td>10</td>
+<td>该类型此节区被保留，不过其语义尚未被定义。</td>
+</tr>
+<tr>
+<td>SHT_DYNSYM</td>
+<td>11</td>
+<td>作为一个完整的符号表，它可能包含很多对动态链接而言不必 要的符号。因此，目标文件也可以包含一个 SHT_DYNSYM 节区，其中保存动态链接符号的一个最小集合，以节省空间。</td>
+</tr>
+<tr>
+<td>SHT_LOPROC</td>
+<td>0X70000000</td>
+<td>此值指定保留给处理器专用语义的下界（ LOw PROCessor-specific semantics ）。</td>
+</tr>
+<tr>
+<td>SHT_HIPROC</td>
+<td>0X7FFFFFFF</td>
+<td>此值指定保留给处理器专用语义的上界（ HIgh PROCessor-specific semantics ）。</td>
+</tr>
+<tr>
+<td>SHT_LOUSER</td>
+<td>0X80000000</td>
+<td>此值指定保留给应用程序的索引下界。</td>
+</tr>
+<tr>
+<td>SHT_HIUSER</td>
+<td>0X8FFFFFFF</td>
+<td>此值指定保留给应用程序的索引上界。</td>
+</tr>
+</tbody></table>
+<h1 id="Section"><a href="#Section" class="headerlink" title="Section"></a>Section</h1><p>节区包含目标文件中除了 ELF 头部、程序头部表、节区头部表的所有信息。节区满足以下条件：</p>
+<ul>
+<li>每个节区都有对应的节头来描述它。但是反过来，节区头部并不一定会对应着一个节区。</li>
+<li>每个节区在目标文件中是连续的，但是大小可能为 0。</li>
+<li>任意两个节区不能重叠，即一个字节不能同时存在于两个节区中。</li>
+<li>目标文件中可能会有闲置空间（inactive space），各种头和节不一定会覆盖到目标文件中的所有字节，闲置区域的内容未指定。</li>
+</ul>
+<p>先了解一些特殊节（前边带.的节是系统保留的）</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>类型</th>
+<th>属性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.comment</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>包含版本控制信息。</td>
+</tr>
+<tr>
+<td>.debug</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含用于符号调试的信息。</td>
+</tr>
+<tr>
+<td>.dynamic</td>
+<td>SHT_DYNAMIC</td>
+<td>SHF_ALLOC SHF_WRITE</td>
+<td>此节区包含动态链接信息。SHF_WRITE 位设置与否是否被设置取决于具体的处理器。</td>
+</tr>
+<tr>
+<td>.dynstr</td>
+<td>SHT_STRTAB</td>
+<td>SHF_ALLOC</td>
+<td>此节区包含用于动态链接的字符串，大多数 情况下这些字符串代表了与符号表项相关的名称。</td>
+</tr>
+<tr>
+<td>.dynsym</td>
+<td>SHT_DYNSYM</td>
+<td>SHF_ALLOC</td>
+<td>此节区包含动态链接符号表。</td>
+</tr>
+<tr>
+<td>.got</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含全局偏移表。</td>
+</tr>
+<tr>
+<td>.line</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含符号调试的行号信息，描述了源程序与机器指令之间的对应关系，其内容是未定义的。</td>
+</tr>
+<tr>
+<td>.plt</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含过程链接表（procedure linkage table）。</td>
+</tr>
+<tr>
+<td>.relname</td>
+<td>SHT_REL</td>
+<td></td>
+<td>这些节区中包含重定位信息。如果文件中包含可加载的段，段中有重定位内容，节区的属性将包含 SHF_ALLOC 位，否则该位置 0。传统上 name 根据重定位所适用的节区给定。例如 .text 节区的重定位节区名字将是：.rel.text 或者 .rela.text。</td>
+</tr>
+<tr>
+<td>.relaname</td>
+<td>SHT_RELA</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>.shstrtab</td>
+<td>SHT_STRTAB</td>
+<td></td>
+<td>此节区包含节区名称。</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/PWN/" rel="tag"># PWN</a>
+              <a href="/tags/ELF/" rel="tag"># ELF</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/29/2019-CISCN/" rel="prev" title="2019-CISCN">
+      <i class="fa fa-chevron-left"></i> 2019-CISCN
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/09/01/record-1/" rel="next" title="record_1">
+      record_1 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ELF%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">ELF文件结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ELF-Header"><span class="nav-number">2.</span> <span class="nav-text">ELF Header</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#e-ident"><span class="nav-number">2.1.</span> <span class="nav-text">e_ident</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#e-phoff"><span class="nav-number">2.2.</span> <span class="nav-text">e_phoff</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#e-shoff"><span class="nav-number">2.3.</span> <span class="nav-text">e_shoff</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Program-Header-Table"><span class="nav-number">3.</span> <span class="nav-text">Program Header Table</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#p-type"><span class="nav-number">3.1.</span> <span class="nav-text">p_type</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#p-offset"><span class="nav-number">3.2.</span> <span class="nav-text">p_offset</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E%E6%AE%B5%E5%92%8C%E8%8A%82%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">3.3.</span> <span class="nav-text">关于段和节的关系</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Section-Header-Table"><span class="nav-number">4.</span> <span class="nav-text">Section Header Table</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#sh-type"><span class="nav-number">4.1.</span> <span class="nav-text">sh_type</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Section"><span class="nav-number">5.</span> <span class="nav-text">Section</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="F11st"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">F11st</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">F11st</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

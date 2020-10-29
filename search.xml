@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>C++走过的路-C++中让两个数字输入的时候用逗号隔开</title>
+    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/</url>
+    <content><![CDATA[<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int a,b;</span><br><span class="line">cin &gt;&gt; a ;</span><br><span class="line">if (cin.get()&#x3D;&#x3D;&#39;,&#39; ) &#x2F;&#x2F;如果不按 数字+逗号+数字格式输入，则不允许输入第二个数，以达到限制要求      否则，用户输入数字+空格+数字也能达到输入两个数字</span><br><span class="line">&#123;</span><br><span class="line">  cin&gt;&gt;b ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>归档</tag>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2019-CISCN</title>
+    <url>/2019/08/29/2019-CISCN/</url>
+    <content><![CDATA[<h1 id="初赛"><a href="#初赛" class="headerlink" title="初赛"></a>初赛</h1><h2 id="签到"><a href="#签到" class="headerlink" title="签到"></a>签到</h2><p>人脸识别</p>
+<h2 id="easyGO"><a href="#easyGO" class="headerlink" title="easyGO"></a>easyGO</h2><p>gdb里面动态调试，第一个call步进，然后一路单步下去，能直接找到真flag</p>
+<img src="/2019/08/29/2019-CISCN/1.png" class="" title="easyGO">
+<h2 id="puzzles"><a href="#puzzles" class="headerlink" title="puzzles"></a>puzzles</h2><p>数学题。。队里数学大佬写的（考研人无敌）</p>
+<h3 id="question-0"><a href="#question-0" class="headerlink" title="question 0"></a>question 0</h3><img src="/2019/08/29/2019-CISCN/2.1.png" class="" title="question 0">
+<p>写脚本求解</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> scipy.linalg <span class="keyword">import</span> solve</span><br><span class="line">a = np.array([[<span class="number">13627</span>, <span class="number">26183</span>, <span class="number">35897</span>, <span class="number">48119</span>], [<span class="number">23027</span>,<span class="number">38459</span>,<span class="number">40351</span>,<span class="number">19961</span>], [<span class="number">36013</span>,<span class="number">45589</span>,<span class="number">17029</span>,<span class="number">27823</span>],[<span class="number">43189</span>,<span class="number">12269</span>,<span class="number">21587</span>,<span class="number">33721</span>]])</span><br><span class="line">b = np.array([<span class="number">347561292</span>,<span class="number">361760202</span>,<span class="number">397301762</span>,<span class="number">350830412</span>])</span><br><span class="line">x = solve(a, b)</span><br><span class="line">print(x) </span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>a1,a2,a3,a4=[4006,3053,2503,2560]</p>
+</blockquote>
+<h3 id="question-1"><a href="#question-1" class="headerlink" title="question 1"></a>question 1</h3><img src="/2019/08/29/2019-CISCN/2.2.png" class="" title="question 1">
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">handlerNum</span>(<span class="params">num</span>):</span></span><br><span class="line">    <span class="keyword">if</span> num &gt; <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>, num//<span class="number">2</span>+<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> (num % i) == <span class="number">0</span>:</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">26364809</span>, <span class="number">26366033</span>):</span><br><span class="line">        <span class="keyword">if</span> handlerNum(i):</span><br><span class="line">            print(i)</span><br></pre></td></tr></table></figure>
+<p>Part1 = 26365399</p>
+<h3 id="question-2"><a href="#question-2" class="headerlink" title="question 2"></a>question 2</h3><img src="/2019/08/29/2019-CISCN/2.3.png" class="" title="question 2">
+<p>第一部分洛必达，第二第三部分正常积分，第四部分分部积分:</p>
+<img src="/2019/08/29/2019-CISCN/2.4.jpg" class="" title="question 2">
+<h3 id="question-3"><a href="#question-3" class="headerlink" title="question 3"></a>question 3</h3><img src="/2019/08/29/2019-CISCN/2.5.png" class="" title="question 3">
+<img src="/2019/08/29/2019-CISCN/2.6.jpg" class="" title="question 3">
+<h3 id="question-4"><a href="#question-4" class="headerlink" title="question 4"></a>question 4</h3><img src="/2019/08/29/2019-CISCN/2.7.png" class="" title="question 4">
+<p>柱面法解三重积分</p>
+<img src="/2019/08/29/2019-CISCN/2.8.jpg" class="" title="question 4">
+
+<p>组合得FLAG</p>
+<h2 id="JustSoso"><a href="#JustSoso" class="headerlink" title="JustSoso"></a>JustSoso</h2><p>伪协议读文件，基本的反序列化。</p>
+<h2 id="your-pwn"><a href="#your-pwn" class="headerlink" title="your_pwn"></a>your_pwn</h2><p>数组下标没有check，可以越界读写。gdb里面动态调试先确定libc和返回地址的偏移，相当于数组的632和344，然后利用数组越界泄露__libc_start_main地址然后计算libc基址，然后把libc+one_gadget的地址写入返回地址。</p>
+<h2 id="saleae"><a href="#saleae" class="headerlink" title="saleae"></a>saleae</h2><p>下载saleae即可读取</p>
+<h2 id="usbasp"><a href="#usbasp" class="headerlink" title="usbasp"></a>usbasp</h2><p>同上</p>
+<h2 id="24C"><a href="#24C" class="headerlink" title="24C"></a>24C</h2><p>同上，set up write to信号的下一行字符的ASCII值表示接下来数据要修改的位置，在5.9s左右的set up write信号下将字符ac覆盖了9e的位置</p>
+<h2 id="daily"><a href="#daily" class="headerlink" title="daily"></a>daily</h2><p>show函数存在漏洞，输出的时候未截断，能leak出heap与libc的地址<br>fastbins的free能泄露出heap的地址<br>smallbins的free能泄露出libc的地址<br>delete()的free没有检查下标，能构造double free，从而修改free 地址为system，构造system(‘/bin/sh’)并执行</p>
+<img src="/2019/08/29/2019-CISCN/3.png" class="" title="daily">
+<h2 id="全宇宙最简单的SQL"><a href="#全宇宙最简单的SQL" class="headerlink" title="全宇宙最简单的SQL"></a>全宇宙最简单的SQL</h2><p>主要用到虚拟表和exp报错</p>
+<h2 id="partdes"><a href="#partdes" class="headerlink" title="partdes"></a>partdes</h2><p>第13轮解出字符串</p>
+<h2 id="baby-pwn"><a href="#baby-pwn" class="headerlink" title="baby_pwn"></a>baby_pwn</h2><p>ret2dlresolve,用roputils直接生成ropchain来getshell</p>
+<img src="/2019/08/29/2019-CISCN/4.png" class="" title="baby_pwn">]]></content>
+      <categories>
+        <category>CTF</category>
+      </categories>
+      <tags>
+        <tag>CTF</tag>
+        <tag>writeup</tag>
+        <tag>CISCN</tag>
+        <tag>2019</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++走过的路-使用cin保留小数位数</title>
+    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E4%BD%BF%E7%94%A8cin%E4%BF%9D%E7%95%99%E5%B0%8F%E6%95%B0%E4%BD%8D%E6%95%B0/</url>
+    <content><![CDATA[<blockquote>
+<p>闲时把大一刚开始学C++时遇到的一些小问题记得笔记转移过来，顺便重温了一下当时（^_^）</p>
+</blockquote>
+<p><strong>以保留2位小数为例,代码如下:</strong></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">#include &lt;iostream&gt;</span><br><span class="line">#include &lt;iomanip&gt;</span><br><span class="line">using namespace std;</span><br><span class="line"></span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    double a;</span><br><span class="line">    cin&gt;&gt;a;</span><br><span class="line">    cout&lt;&lt;setiosflags(ios::fixed)&lt;&lt;setprecision(2)&lt;&lt;a&lt;&lt;endl;&#x2F;&#x2F;fixed为实数输出，若改为scientifitic则是科学技术法输出；setprecision(2)此处表示设置精度为2</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>归档</tag>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++走过的路-深入理解c语言&#39;\0&#39;,&#39;0&#39;,&quot;0&quot; ,0之间的区别</title>
+    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3c%E8%AF%AD%E8%A8%800%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/</url>
+    <content><![CDATA[<h1 id="39-0-39-和-39-0-39-的区别"><a href="#39-0-39-和-39-0-39-的区别" class="headerlink" title="&#39;\0&#39;和&#39;0&#39;的区别"></a>&#39;\0&#39;和&#39;0&#39;的区别</h1><p>有一个共同点就是它们都是字符，在c语言中，字符是按其所对应的ASCII码来存储的，一个字符占一个字节。请翻开你的ASCII字符集表吧，一般在你的C语言教材的附录上，没有的话网上查查哦。请看第一个ASCII码，对是0，对应的字符是（Null），其实就是&#39;\0&#39;，即空字符。判断一个字符串是否结束的标志就是看是否遇到&#39;\0&#39;，如果遇到&#39;\0&#39;，则表示字符串结束。而字符&#39;0&#39;对应的ASCII码是48，48对应的十六进制数就是0x30，通常我们在编程的时候，用字符转化为数字的时候经常要用到，比如要将&#39;8&#39;转换为数字8，在语句中这样写就可以了，<code>&#39;8&#39;-&#39;0&#39;</code>。这里的8就是数字。</p>
+<h1 id="39-0-39-和0的区别"><a href="#39-0-39-和0的区别" class="headerlink" title="&#39;0&#39;和0的区别"></a>&#39;0&#39;和0的区别</h1><p>前者是字符常量，后者是整形常量，它们的含义和在计算机中的存储方式截然不同。但是字符常量可以像整数一样在程序中参与相关运算。例如：<code>&#39;8&#39;-3</code>。</p>
+<h1 id="quot-0-quot-和-39-0-39-的区别"><a href="#quot-0-quot-和-39-0-39-的区别" class="headerlink" title="&quot;0&quot;和&#39;0&#39;的区别"></a>&quot;0&quot;和&#39;0&#39;的区别</h1><p>首先&quot;0&quot;是字符串常量，字符串常量是由一对双引号括起的字符序列。例如：&quot;CHINA&quot;,&quot;I LOVE YOU&quot;,&quot;123&quot;等都是合法的字符串常量。&#39;0&#39;是字符常量，字符串常量和字符常量是不同的量。</p>
+<ol>
+<li>字符常量由单引号括起来；字符串常量由双引号括起来。</li>
+<li>字符常量只能是单个字符；字符串常量则可以含一个或多个字符。</li>
+</ol>
+<p>这里先介绍表达上的主要区别，在运用中还有存储空间的不同以及赋值方式的不同等等。</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>归档</tag>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ELF文件格式</title>
+    <url>/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/</url>
+    <content><![CDATA[<h1 id="ELF文件结构"><a href="#ELF文件结构" class="headerlink" title="ELF文件结构"></a>ELF文件结构</h1><p>ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。</p>
+<a id="more"></a>
+
+<p>其内容视图主要有两种</p>
+<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png" class="" title="Link View">
+<p>以链接视图来分析ELF的文件格式</p>
+<ul>
+<li>ELF Header -&gt; 存放ELF文件的整体信息</li>
+<li>Program Header Table -&gt; 存放程序执行时所需要的信息。其实就是段信息</li>
+<li>Section -&gt; 存放程序大部分信息：指令、数据、符号表等等</li>
+<li>Section Header Table -&gt; 存放描述节区的信息</li>
+</ul>
+<h1 id="ELF-Header"><a href="#ELF-Header" class="headerlink" title="ELF Header"></a>ELF Header</h1><p>用于索引ELF全部的信息，其数据结构如下（数据结构可以在/usr/include/elf.h查看）</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* The ELF file header.  This appears at the start of every ELF file.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">char</span>	e_ident[EI_NIDENT];	<span class="comment">/* Magic number and other info */</span></span><br><span class="line">  Elf32_Half	e_type;			<span class="comment">/* Object file type */</span></span><br><span class="line">  Elf32_Half	e_machine;		<span class="comment">/* Architecture */</span></span><br><span class="line">  Elf32_Word	e_version;		<span class="comment">/* Object file version */</span></span><br><span class="line">  Elf32_Addr	e_entry;		<span class="comment">/* Entry point virtual address */</span></span><br><span class="line">  Elf32_Off	e_phoff;		<span class="comment">/* Program header table file offset */</span></span><br><span class="line">  Elf32_Off	e_shoff;		<span class="comment">/* Section header table file offset */</span></span><br><span class="line">  Elf32_Word	e_flags;		<span class="comment">/* Processor-specific flags */</span></span><br><span class="line">  Elf32_Half	e_ehsize;		<span class="comment">/* ELF header size in bytes */</span></span><br><span class="line">  Elf32_Half	e_phentsize;		<span class="comment">/* Program header table entry size */</span></span><br><span class="line">  Elf32_Half	e_phnum;		<span class="comment">/* Program header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shentsize;		<span class="comment">/* Section header table entry size */</span></span><br><span class="line">  Elf32_Half	e_shnum;		<span class="comment">/* Section header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shstrndx;		<span class="comment">/* Section header string table index */</span></span><br><span class="line">&#125; Elf32_Ehdr;</span><br></pre></td></tr></table></figure>
+<p>只了解其中部分含义</p>
+<h2 id="e-ident"><a href="#e-ident" class="headerlink" title="e_ident"></a>e_ident</h2><p>其下标含义如下</p>
+<table>
+<thead>
+<tr>
+<th>宏名称</th>
+<th>下标</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EI_MAG0</td>
+<td>0</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>1</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>2</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_MAG0</td>
+<td>3</td>
+<td>文件标识</td>
+</tr>
+<tr>
+<td>EI_CLASS</td>
+<td>4</td>
+<td>文件类</td>
+</tr>
+<tr>
+<td>EI_DATA</td>
+<td>5</td>
+<td>数据编码</td>
+</tr>
+<tr>
+<td>EI_VERSION</td>
+<td>6</td>
+<td>文件版本</td>
+</tr>
+<tr>
+<td>EI_PAD</td>
+<td>7</td>
+<td>补齐字节开始处</td>
+</tr>
+</tbody></table>
+<p>下标0-3称为魔数标识ELF文件<br>下标4<strong>EI_CLASS</strong>定义ELF类型，有以下取值</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ELFCLASSNONE</td>
+<td>0</td>
+<td>无效类型</td>
+</tr>
+<tr>
+<td>ELFCLASS32</td>
+<td>1</td>
+<td>32 位文件</td>
+</tr>
+<tr>
+<td>ELFCLASS64</td>
+<td>2</td>
+<td>64 位文件</td>
+</tr>
+</tbody></table>
+<p>下标5 <strong>EI_DATA</strong> 定义大小端模式，有以下取值</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ELFDATANONE</td>
+<td>0</td>
+<td>无效数据编码</td>
+</tr>
+<tr>
+<td>ELFDATA2LSB</td>
+<td>1</td>
+<td>小端</td>
+</tr>
+<tr>
+<td>ELFDATA2MSB</td>
+<td>2</td>
+<td>大端</td>
+</tr>
+</tbody></table>
+<p>下标6 <strong>EI_DATA</strong>  定义ELF头的版本号，与e_version相同<br>下标7 <strong>EI_PAD</strong>  给出了e_ident中未使用字节的开始地址。这些字节被保留并置为 0；处理目标文件的程序应该忽略它们。如果之后这些字节被使用，EI_PAD 的值就会改变。</p>
+<h2 id="e-phoff"><a href="#e-phoff" class="headerlink" title="e_phoff"></a>e_phoff</h2><p>给出程序头部表在文件中的字节偏移（Program Header table OFFset）。如果文件中没有程序头部表，则为 0。</p>
+<h2 id="e-shoff"><a href="#e-shoff" class="headerlink" title="e_shoff"></a>e_shoff</h2><p>给出节头表在文件中的字节偏移（ Section Header table OFFset ）。如果文件中没有节头表，则为 0。</p>
+<h1 id="Program-Header-Table"><a href="#Program-Header-Table" class="headerlink" title="Program Header Table"></a>Program Header Table</h1><p>其类型为Elf32_Phdr结构体数组，ELF  Header中的 e_phentsize 和 e_phnum 指定了该数组每个元素的大小以及元素个数。数据结构如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* Program segment header.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	p_type;			<span class="comment">/* Segment type */</span></span><br><span class="line">  Elf32_Off	p_offset;		<span class="comment">/* Segment file offset */</span></span><br><span class="line">  Elf32_Addr	p_vaddr;		<span class="comment">/* Segment virtual address */</span></span><br><span class="line">  Elf32_Addr	p_paddr;		<span class="comment">/* Segment physical address */</span></span><br><span class="line">  Elf32_Word	p_filesz;		<span class="comment">/* Segment size in file */</span></span><br><span class="line">  Elf32_Word	p_memsz;		<span class="comment">/* Segment size in memory */</span></span><br><span class="line">  Elf32_Word	p_flags;		<span class="comment">/* Segment flags */</span></span><br><span class="line">  Elf32_Word	p_align;		<span class="comment">/* Segment alignment */</span></span><br><span class="line">&#125; Elf32_Phdr;</span><br></pre></td></tr></table></figure>
+<p>前面说过其实这个表就是存放段信息的，暂且先了解p_type，p_offset字段</p>
+<h2 id="p-type"><a href="#p-type" class="headerlink" title="p_type"></a>p_type</h2><p>描述段类型，具体取值如下</p>
+<table>
+<thead>
+<tr>
+<th>名字</th>
+<th>取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PT_NULL</td>
+<td>0</td>
+<td>表明段未使用，其结构中其他成员都是未定义的。</td>
+</tr>
+<tr>
+<td>PT_LOAD</td>
+<td>1</td>
+<td>此类型段为一个可加载的段，大小由 p_filesz 和 p_memsz 描述。文件中的字节被映射到相应内存段开始处。如果 p_memsz 大于 p_filesz，“剩余” 的字节都要被置为 0。p_filesz 不能大于 p_memsz。可加载的段在程序头部中按照 p_vaddr 的升序排列。</td>
+</tr>
+<tr>
+<td>PT_DYNAMIC</td>
+<td>2</td>
+<td>此类型段给出动态链接信息。</td>
+</tr>
+<tr>
+<td>PT_INTERP</td>
+<td>3</td>
+<td>此类型段给出了一个以 NULL 结尾的字符串的位置和长度，该字符串将被当作解释器调用。这种段类型仅对可执行文件有意义（也可能出现在共享目标文件中）。此外，这种段在一个文件中最多出现一次。而且这种类型的段存在的话，它必须在所有可加载段项的前面。</td>
+</tr>
+<tr>
+<td>PT_NOTE</td>
+<td>4</td>
+<td>此类型段给出附加信息的位置和大小。</td>
+</tr>
+<tr>
+<td>PT_SHLIB</td>
+<td>5</td>
+<td>该段类型被保留，不过语义未指定。而且，包含这种类型的段的程序不符合 ABI 标准。</td>
+</tr>
+<tr>
+<td>PT_PHDR</td>
+<td>6</td>
+<td>该段类型的数组元素如果存在的话，则给出了程序头部表自身的大小和位置，既包括在文件中也包括在内存中的信息。此类型的段在文件中最多出现一次。此外，只有程序头部表是程序的内存映像的一部分时，它才会出现。如果此类型段存在，则必须在所有可加载段项目的前面。</td>
+</tr>
+<tr>
+<td>PT_LOPROC~PT_HIPROC</td>
+<td>0x70000000 ~0x7fffffff</td>
+<td>此范围的类型保留给处理器专用语义。</td>
+</tr>
+</tbody></table>
+<h2 id="p-offset"><a href="#p-offset" class="headerlink" title="p_offset"></a>p_offset</h2><p>存放从文件开始到该段开头的第一个字节的偏移</p>
+<h2 id="关于段和节的关系"><a href="#关于段和节的关系" class="headerlink" title="关于段和节的关系"></a>关于段和节的关系</h2><p>简单来说段就是节的集合，段主要在程序装载时起作用。</p>
+<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/text_segment.png" class="" title="text segment">
+
+
+
+<ul>
+<li>有执行功能的代码指令流和只读属性的数据节组合成只读代码段。</li>
+<li>可修改的数据变量，和动态调用的相对地址寻址入口组合成读写数据段。</li>
+<li>不同的段来说可能会有所重合，即不同的段包含相同的节</li>
+</ul>
+<h1 id="Section-Header-Table"><a href="#Section-Header-Table" class="headerlink" title="Section Header Table"></a>Section Header Table</h1><p>其类型为ELF32_Shdr结构体数组，存放节信息。其数据结构如下</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* Section header.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	sh_name;		<span class="comment">/* Section name (string tbl index) */</span></span><br><span class="line">  Elf32_Word	sh_type;		<span class="comment">/* Section type */</span></span><br><span class="line">  Elf32_Word	sh_flags;		<span class="comment">/* Section flags */</span></span><br><span class="line">  Elf32_Addr	sh_addr;		<span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf32_Off	sh_offset;		<span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf32_Word	sh_size;		<span class="comment">/* Section size in bytes */</span></span><br><span class="line">  Elf32_Word	sh_link;		<span class="comment">/* Link to another section */</span></span><br><span class="line">  Elf32_Word	sh_info;		<span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf32_Word	sh_addralign;		<span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf32_Word	sh_entsize;		<span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf32_Shdr;</span><br></pre></td></tr></table></figure>
+<p>还是先了解部分字段</p>
+<h2 id="sh-type"><a href="#sh-type" class="headerlink" title="sh_type"></a>sh_type</h2><table>
+<thead>
+<tr>
+<th>名称</th>
+<th>取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SHT_NULL</td>
+<td>0</td>
+<td>该类型节区是非活动的，这种类型的节头中的其它成员取值无意义。</td>
+</tr>
+<tr>
+<td>SHT_PROGBITS</td>
+<td>1</td>
+<td>该类型节区包含程序定义的信息，它的格式和含义都由程序来决定。</td>
+</tr>
+<tr>
+<td>SHT_SYMTAB</td>
+<td>2</td>
+<td>该类型节区包含一个符号表（SYMbol TABle）。目前目标文件对每种类型的</td>
+</tr>
+<tr>
+<td>SHT_STRTAB</td>
+<td>3</td>
+<td>该类型节区包含字符串表（ STRing TABle ）。</td>
+</tr>
+<tr>
+<td>SHT_RELA</td>
+<td>4</td>
+<td>该类型节区包含显式指定位数的重定位项（ RELocation entry with Addends ），例如，32 位目标文件中的 Elf32_Rela 类型。此外，目标文件可能拥有多个重定位节区。</td>
+</tr>
+<tr>
+<td>SHT_HASH</td>
+<td>5</td>
+<td>该类型节区包含符号哈希表（ HASH table ）。</td>
+</tr>
+<tr>
+<td>SHT_DYNAMIC</td>
+<td>6</td>
+<td>该类型节区包含动态链接的信息（ DYNAMIC linking ）。</td>
+</tr>
+<tr>
+<td>SHT_NOTE</td>
+<td>7</td>
+<td>该类型节区包含以某种方式标记文件的信息（NOTE）。</td>
+</tr>
+<tr>
+<td>SHT_NOBITS</td>
+<td>8</td>
+<td>该类型节区不占用文件的空间，其它方面和 SHT_PROGBITS 相似。尽管该类型节区不包含任何字节，其对应的节头成员 sh_offset 中还是会包含概念性的文件偏移。</td>
+</tr>
+<tr>
+<td>SHT_REL</td>
+<td>9</td>
+<td>该类型节区包含重定位表项（RELocation entry without Addends），不过并没有指定位数。例如，32 位目标文件中的 Elf32_rel 类型。目标文件中可以拥有多个重定位节区。</td>
+</tr>
+<tr>
+<td>SHT_SHLIB</td>
+<td>10</td>
+<td>该类型此节区被保留，不过其语义尚未被定义。</td>
+</tr>
+<tr>
+<td>SHT_DYNSYM</td>
+<td>11</td>
+<td>作为一个完整的符号表，它可能包含很多对动态链接而言不必 要的符号。因此，目标文件也可以包含一个 SHT_DYNSYM 节区，其中保存动态链接符号的一个最小集合，以节省空间。</td>
+</tr>
+<tr>
+<td>SHT_LOPROC</td>
+<td>0X70000000</td>
+<td>此值指定保留给处理器专用语义的下界（ LOw PROCessor-specific semantics ）。</td>
+</tr>
+<tr>
+<td>SHT_HIPROC</td>
+<td>0X7FFFFFFF</td>
+<td>此值指定保留给处理器专用语义的上界（ HIgh PROCessor-specific semantics ）。</td>
+</tr>
+<tr>
+<td>SHT_LOUSER</td>
+<td>0X80000000</td>
+<td>此值指定保留给应用程序的索引下界。</td>
+</tr>
+<tr>
+<td>SHT_HIUSER</td>
+<td>0X8FFFFFFF</td>
+<td>此值指定保留给应用程序的索引上界。</td>
+</tr>
+</tbody></table>
+<h1 id="Section"><a href="#Section" class="headerlink" title="Section"></a>Section</h1><p>节区包含目标文件中除了 ELF 头部、程序头部表、节区头部表的所有信息。节区满足以下条件：</p>
+<ul>
+<li>每个节区都有对应的节头来描述它。但是反过来，节区头部并不一定会对应着一个节区。</li>
+<li>每个节区在目标文件中是连续的，但是大小可能为 0。</li>
+<li>任意两个节区不能重叠，即一个字节不能同时存在于两个节区中。</li>
+<li>目标文件中可能会有闲置空间（inactive space），各种头和节不一定会覆盖到目标文件中的所有字节，闲置区域的内容未指定。</li>
+</ul>
+<p>先了解一些特殊节（前边带.的节是系统保留的）</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>类型</th>
+<th>属性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.comment</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>包含版本控制信息。</td>
+</tr>
+<tr>
+<td>.debug</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含用于符号调试的信息。</td>
+</tr>
+<tr>
+<td>.dynamic</td>
+<td>SHT_DYNAMIC</td>
+<td>SHF_ALLOC SHF_WRITE</td>
+<td>此节区包含动态链接信息。SHF_WRITE 位设置与否是否被设置取决于具体的处理器。</td>
+</tr>
+<tr>
+<td>.dynstr</td>
+<td>SHT_STRTAB</td>
+<td>SHF_ALLOC</td>
+<td>此节区包含用于动态链接的字符串，大多数 情况下这些字符串代表了与符号表项相关的名称。</td>
+</tr>
+<tr>
+<td>.dynsym</td>
+<td>SHT_DYNSYM</td>
+<td>SHF_ALLOC</td>
+<td>此节区包含动态链接符号表。</td>
+</tr>
+<tr>
+<td>.got</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含全局偏移表。</td>
+</tr>
+<tr>
+<td>.line</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含符号调试的行号信息，描述了源程序与机器指令之间的对应关系，其内容是未定义的。</td>
+</tr>
+<tr>
+<td>.plt</td>
+<td>SHT_PROGBITS</td>
+<td></td>
+<td>此节区包含过程链接表（procedure linkage table）。</td>
+</tr>
+<tr>
+<td>.relname</td>
+<td>SHT_REL</td>
+<td></td>
+<td>这些节区中包含重定位信息。如果文件中包含可加载的段，段中有重定位内容，节区的属性将包含 SHF_ALLOC 位，否则该位置 0。传统上 name 根据重定位所适用的节区给定。例如 .text 节区的重定位节区名字将是：.rel.text 或者 .rela.text。</td>
+</tr>
+<tr>
+<td>.relaname</td>
+<td>SHT_RELA</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>.shstrtab</td>
+<td>SHT_STRTAB</td>
+<td></td>
+<td>此节区包含节区名称。</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>PWN</category>
+      </categories>
+      <tags>
+        <tag>PWN</tag>
+        <tag>ELF</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PWN学习之路 - 字符串格式化漏洞总结</title>
+    <url>/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<h2 id="一、函数原型"><a href="#一、函数原型" class="headerlink" title="一、函数原型"></a>一、函数原型</h2><p>*<em>int printf(const char</em> format,…)**<br>常规用法</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br></pre></td></tr></table></figure>
+<p>另外一种用法</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(str)</span><br></pre></td></tr></table></figure>
+<p>第一种用法没有错误，但是在第二种方法中没有规定<strong>format</strong>参数，用户便可以通过构造str来实现内存的任意读写。<br>printf函数的格式化字符串常见的有</p>
+<blockquote>
+<p>%d，%f，%c，%s，%x（16进制数，没有0x），%p（16进制数，有0x）等。<br>%n ，它的功能是将%n之前打印出来的字符个数，赋值给一个变量。<br>%hn，%hhn，%lln，分别为写入目标空间2字节，1字节，8字节。</p>
+</blockquote>
+<p>注意是对应参数（这个参数是指针）的对应的地址开始起几个字节。不要觉得%lln，取的是8个字节的指针，%n取的就是4个字节的指针，取的是多少字节的指针只跟程序的位数有关，如果是32位的程序，%n取的就是4字节指针，64位取的就是8字节指针，这是因为不同位数的程序，每个参数对应的字节数是不同的。</p>
+<h2 id="二、原理分析"><a href="#二、原理分析" class="headerlink" title="二、原理分析"></a>二、原理分析</h2><p>以一段代码为例</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">#include&lt;stdio.h&gt;</span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">  char a[100];</span><br><span class="line">  scanf(&quot;%s&quot;,a);</span><br><span class="line">  printf(a);</span><br><span class="line">  return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/1.png" class="" title="运行结果">
+<p>第七个参数就是AAAA在栈中的位置</p>
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/before.png" class="" title="输入前">
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/behind.png" class="" title="输入后">
+<p><em>PS：<br>linux下直接读取第七个参数的方法:<br><strong>%&lt; number &gt;$x</strong> 是直接读取第number个位置的参数，同样可以用在%n，%d等等。<br>但是需要注意64位程序，前6个参数是存在寄存器中的，从第7个参数开始才会出现在栈中，所以栈中从格式化串开始的第一个，应该是**%7$n**。</em></p>
+<h2 id="三、读取内存"><a href="#三、读取内存" class="headerlink" title="三、读取内存"></a>三、读取内存</h2><p>输入的字符串的前4个字节如果是一个有效的字符串的首地址，就可以用%s将其打印出来，做到任意内存读取。如果不是有效的字符串，会出现段错误。</p>
+<h2 id="四、修改内存"><a href="#四、修改内存" class="headerlink" title="四、修改内存"></a>四、修改内存</h2><blockquote>
+<p>局部变量保存在栈中</p>
+</blockquote>
+<p>前提需要关闭PIE保护，不然局部变量的地址是随机的。<br>例如前四个字节地址在0xABCDEFGH<br>构造字符串如下</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#96;printf &quot;\xGH\xEF\xCD\xAB&quot;&#96;%08x%08x%08x%08x%08x%08x%08n</span><br><span class="line">&#x2F;&#x2F;&#96;printf &quot;\xGH\xEF\xCD\xAB&quot;&#96;%7$n</span><br></pre></td></tr></table></figure>
+<h2 id="五、实战"><a href="#五、实战" class="headerlink" title="五、实战"></a>五、实战</h2><p><strong>CGfsb</strong><br>在IDA中源码如下</p>
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/ori.png" class="" title="源码">
+<p>确定偏移量</p>
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/offset.png" class="" title="确定偏移量">
+<p>payload</p>
+<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/payload.png" class="" title="payload">
+]]></content>
+      <categories>
+        <category>PWN</category>
+      </categories>
+      <tags>
+        <tag>PWN</tag>
+        <tag>字符串</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>record_1</title>
+    <url>/2019/09/01/record-1/</url>
+    <content><![CDATA[<div id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容."><div class="hbe-input-container"><input type="password" id="hbePass" placeholder="您好, 这里需要密码." /><label>您好, 这里需要密码.</label><div class="bottom-line"></div></div><script id="hbeData" type="hbeData" data-hmacdigest="9b4e4a4e6563a7a54c695db2a5beb4c64ac5ceab2216b5914a3605c11b54714b">da466e382fbeffa91dcf07645c1a0fa8f8fe7d5c54a11817396ab133d2095b4afd589bdf4916549de49f15ce75b6b398cc7938967f3e09b5183dc64aa8e8bf86c51767ffd3dbbc2e4bad7a6d3220cd043e6684ae7a7d04355c97c6d83e217b319563d3508a6b357e77acfbb863e01b34e99f9f1840a2846c95c3446dbba259e47407bbe56b73ee3d6bae0ea6efaf913be82c09f4690675b82671c7b9c364b84a3c568c4fb358af5d850800c743f7e033062756782d628c9a264c71b805ae6f96b9dfda9fd5cb92aab09d8a7b31925d9d5e999fcbd2229ccd40d9488409643d9c94955cb0cde04fa297a42097eeec55876f69e8efbc586a0e06d663e43aaaf2afc90dbdf6f063410db911cf9fa1277d18f0c2288d1fb60e2b9ab7235e05a4f0936bf68177ffbb340cf5a14f0ee4db7b0934d85f8bfe67d56d1e2ea45dafb3cca07520fbf7b3b4387d93c40996c89f87b30c8747bb92854693bb115e4ebcf261accc020fa6a1115e76f86118d7dd1ac00f18cfa14697d85d3d2b0406429b483f23a20274c21151bd5738eac17adca0bc39a191c13be9510cfeee5835cf309bc2f7d4e1fa759abee4318620f6328d899005a5261132ea8c2529bbc351c70a8081f8f8407b90c39e2c25a3945e483034baef1b9979bb030ae1c7e1362762065ac78b1991adc83e6378ffe95ba3a881bc4f8bda8aaa9172ab3d60bda4dc4df348b36cd60cabfa298d5f33793c8cac7dafa521cbbffae2b097308aacd7ed7da506bf3b22c1da7b35cf3572a922218f363c77502ee5f4a277f6584ba5e5c0398b36b9dd820afb5f7a81bce354282e5057375f964048b97ca9c0b62ff6eee24fbdeb1d311c2852d6a5496b06833c4dbb9db121edded8b54cd5bb5c8ec543576b6bdd8efab2fcda79069f50108ab36f54b5619bb62e4c1045e7cb5d627d3dd0068b55ace8fde24234ede3d08b7236c38e4f5cd297d6eb9791d6b138128093f9c0bdf6469fbf91a4f6aa32a1a3ac876adb9aaa84771462b5c38cce31f81c8968fa9f46f5e4d288d0cc7270843e95abbaa7d90ce2ec5b7ff13725964191f74ac51f9761d2f051fa7eb8e55ec24e80e96211d5963e6d748659ea7557773a93efb1a77b6ec33b154cc99a0e8caed759cc216ac502a557dc7fc1ca4258921f2fa872274472837ecfb4a7b3b8abb2bf9ecf2222a5d20ca8367aace822387ecd509897b92a27d7d53d488d572a07e6947a43cf4b74b8ed9855576dcf23c590203d838711c6339b2ef78ae122bb1e5a070a794bfbfd3db7e6eee83bb1a42ed1f16a54aa5d14646200b6a090b6154988c9212f0625b617bfda89b201168134552ea3b79ab4d68b0475db4baf5283452b6aa50e083b7a5ad58ac7080b4d6b7456175e9acf553c9c66b7cde5b89d6c363ddc0d301e533f81b53a8f99d865e38edc465c53a938c888cbabfd261f8c6914915555a7b4d53454bdcbd8bca4df77a3803b3cac625733750fb9e7f4b70f5f0c1a915634a6fa8428eda3070644fcf3d797b8959c371e8bf987ea600c0d77d812e8530390cd14bbc8367af5ca22dbc76a191a1278a264b03ff19713a1a67a98831ee3a238c2bf89f1697664fd28b0e5fac80ad99b32f3db9aa305563f2f02d9a9bf01e7a9bc3c9f9f8e67ba6a10786382390e88a4725032ca3a343dca35e46f665d1a3c0726c5948fbc9807aaae6567f95c863aa6c3bc90b283fc13726071cfc63c64c0aad09f2162c941c9579a1a72a01fe6dd5e4601148a03e513f5d5f88298dd2eb1868b5cd519dcc3bca0b39f3d1b803416ca636626d0274ce96132de5f12bd9bef59f92db705ce70ee97eae4a4e1caa379d4266d7bdcfa488798371a418222235a904a014ff1dfbbe1a8e71d5dae3329741eaa31ef72f6f470e276369e3dfa1604dfdc0bba5845e8d96a36c426e3e76341e4873e69b09153237b813c000df52cb79a3bae897ddef601930a44d09fc8e856676f87873a869728158cd01f44de281a4d93b56c30a24cdbd85b3881ad2037b20d366ae6136e19275b66e746cd2785a087411be3aa991463e967b51922ff6ae6a869981f46229110645e3fffb98864769aad5285ad1c776920d764cf6db001f9b8ece6c538a034f4df0f9b1b23bfa52ba0064fd1429917542c3dd4855beb40695bbce7ebcb2c0aa16c57f665103eb3aa83b5eb94537db72162a872c9e9346c16a7f25437e00f9f16c6328a35c7aa6d11137d8856fa3c320336b3ea7e6ffd4681b09326fe0b966e244ac701deaf4685f90a1504c96a978e0d1f041af38ac6c99682f8999cf116532973af4237cc946b1e815c6041de89a467869d0d0235b7b423d935f4c99b5479f20b653669dfef19de4a1966c2970de95ad3ecb037eff8dc91205ff5bb5865d64501c80ad197dce5f99489fd737acb8357f79584031b982449626bd5a6052e5a27d5e054bdfe61ed5b6f06b8c848939bcf6c71f7d9c4dec69b9fe7205fe050361546a45d03f2fa8df7ac31b0bd4fa3d70f3814f14e39e5061c85116a8feafa821656674414a28d12eac569762a0be1ee39b76bfc59548060c3687256c65dcc406093692934f2faa8963012b0dde07ffbec907303b8cff41376a1c5698b38f0f41e373ad0db730dbfcf1ed9ada6ff6d665111c5c497d5065c2d2457798a4c1ae126b8f0f32ef0ca0369569618c373613cacf92df42689352639c8e18db50def0b00dc20578f991d66d8507fc6b7c8dd504540bfb01775ffa854005aeae138e9a8cda8233ea4b5b4e1ba13cbeb3feb84f0e8b31381528aaef2f58edf7b26efacfcdde75e8acce01f151fe47370a7a0003161902ec957290ee30978e555b2956d4d95967309ce473d142aa6a175f5244f4574fde95b78d9e9e1ce54c1d0eed52350cb19bc7ab14ea196b5e6377c657cf1c7b60d5c390609cc782ac159bc6ddb53c7c4451a7e6b9d8146484fb5cbd5eaaa21f98f602b72e89400b31a1bc1761e2a4947762a82b270fc6a4f1029fc39143dd8720e8dcb51752c703578899b312f09fad9f69f95c494098dbca4d98131121894ecf8d4bf4123655ad4b4739d0594448786996d2c5dd086c3db4ca5a4ea1b562c4e5cca841dab710e0235a7d2f489c9903d8f3600c1e7c2fa8931f81b2aac45450ecd4c1e14e738affbe4dd9de3dcae5d0d15b0af250fdf654efb6cb9148ca01b420cdfcfd2642b0e56d7cce2d4bd384f7d7b84292cd780606182c85046700d64942e037ed36c3208aed4e8124df2cfc64e58af05c8fb623ce6a30f1994f439f2cd18d5c64b03f11f4463e45da14bd9d1793338ee1918f17862a024d2afb465971ba185c7abf309aeac1717951448720b8c0b311d008b094e1d59ada272065659a848300b032a21980768970ddce18c0afc9aa6f5084459cb6083585e444e8ffb26f425039dea32f233b8d7d035a6c791ccaa06504e06a561d5816778d80eaacc3daf7931ea06c76c262740c1ed59042e7fb351a3aadd0d37c00a832785dbbaa014b271cbe933ea82563e30f063ddb4f57f6887837296b4c761e40f4677a04f7667d9e6484b28c0b540a7f45e35e4f61ab4f61a05448df2e7dd125a9bb296b07e50d19f2f63a8319007be46b60d5bbf3aabb5d4cf6e856785a85d576613fe1027b30ecb4af705c156391a753ad06a011be467349f3c88867c857b89e2cbcd529f44e48a700857d040dbc1d35e740e22cf7391d81be69498c9265a900b071804a0f4f530dd1edbe3b367e1729c563fd08b6de87168ef8e4f323ec8001d6fd5cc9734dd60f42d699afcc9a59f1d303fce98316e602a8d3e972f6dce3a3423dd1770aef00dd1f4c6a7e247a212d91acd829b7101dc3d181ee97f8acc905ee43210b2250696339bb8ec404ae44f0578997ba5f467c69d017a6a4bb8b88730f4ea0f1bad2bd11150e3f5bc3fb0728d9b2559a28a71f5de8e63d51df4689e2c84ed6030</script></div><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+      <categories>
+        <category>Personal</category>
+      </categories>
+      <tags>
+        <tag>Personal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>对于开启PIE的ELF文件调试方法</title>
+    <url>/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/</url>
+    <content><![CDATA[<p>最近调试程序时候遇到很多题目开启了PIE保护</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/check.png" class="" title="checksec">
+<p>加上大部分将符号表删除，这对于使用GDB来下断点来说比较难以定位，以下将几种常见的做法总结。</p>
+<a id="more"></a>
+
+<h1 id="查看ELF基址"><a href="#查看ELF基址" class="headerlink" title="查看ELF基址"></a>查看ELF基址</h1><p>稍微复杂的方法是查看程序运行时ELF基址，然后与获取的偏移地址相加，有两种方式可以查看一种使用pamp来查看进程的地址段及其权限，另一种方法为查看生成的动态链接文件。</p>
+<h2 id="pmap"><a href="#pmap" class="headerlink" title="pmap"></a>pmap</h2><p>在GDB调试程序时先执行run命令</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/run.png" class="" title="run">
+<p>然后使用ps -A查看进程的PID</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pid.png" class="" title="获取进程PID">
+<p>使用pmap PID</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pmap.png" class="" title="pmap查看地址段">
+<p>第一行即为ELF基址</p>
+<h2 id="查看动态链接文件"><a href="#查看动态链接文件" class="headerlink" title="查看动态链接文件"></a>查看动态链接文件</h2><p>这种方式与pmap方式相似，在找出进程PID后，查看/proc/<PID>/map_files/目录，第一个文件名称即为ELF基址</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/map_files.png" class="" title="查看动态链接文件">
+
+<h1 id="b-rebase-addr"><a href="#b-rebase-addr" class="headerlink" title="b *$rebase(addr)"></a>b *$rebase(addr)</h1><p>pwngdb插件提供了rebase命令可以快速定位偏移地址，使用方法为b *$rebase(偏移地址)</p>
+<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/rebase.png" class="" title="rebase">]]></content>
+      <categories>
+        <category>PWN</category>
+      </categories>
+      <tags>
+        <tag>PWN</tag>
+        <tag>调试</tag>
+        <tag>GDB</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>栈溢出</title>
+    <url>/2019/09/05/%E6%A0%88%E6%BA%A2%E5%87%BA/</url>
+    <content><![CDATA[<h1 id="ret2syscall"><a href="#ret2syscall" class="headerlink" title="ret2syscall"></a>ret2syscall</h1><p>系统调用三种方式int 80，syscenter，syscall<br>int 80，syscenter传参方式eax，ebx，ecx，edx<br>syscall传参方式rdi,rsi,rdx,r10,r9,r8</p>
+]]></content>
+      <categories>
+        <category>PWN</category>
+      </categories>
+      <tags>
+        <tag>PWN</tag>
+        <tag>栈</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>调色板图像隐写</title>
+    <url>/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/</url>
+    <content><![CDATA[<h2 id="一、实验目的"><a href="#一、实验目的" class="headerlink" title="一、实验目的"></a>一、实验目的</h2><p>了解调色板图像的特点，掌握基于调色板图像的信息隐藏原理，设计并实现一种基于调色板图像的信息隐藏算法。</p>
+<a id="more"></a>
+
+<h2 id="二、实验环境"><a href="#二、实验环境" class="headerlink" title="二、实验环境"></a>二、实验环境</h2><ul>
+<li>Windows XP或Vista操作系统；</li>
+<li>Matlab 7.1版本软件；</li>
+<li>调色板图像。</li>
+</ul>
+<h2 id="三、原理简介"><a href="#三、原理简介" class="headerlink" title="三、原理简介"></a>三、原理简介</h2><p>调色板图像含有一个不超过256种颜色的调色板，并对应每种颜色的R、G、B三种分量的值，图像内容中的每个像素存储的是一个不超过8比特的索引值，其指向调色板中的对应颜色就是图像的真实色彩。大部分图像用到的颜色数小于256种，甚至小于128种，因此可以在调色板中隐藏秘密信息。<br>调色板图像的调色板中最多包含256种颜色，若改变这些颜色的排列顺序并相应地改变图像像素数据，不会对图像内容造成任何影响。因此隐藏秘密信息最简单的方法就是重新排列调色板中的这些颜色，同时修改索引值，但是许多软件生成的调色板都是按照亮度和使用频率排列的，如果在调色板中打乱颜色会使其毫无隐藏可言。如果调色板颜色小于128种，可复制一个调色板，得到一个扩展的周色板，隐藏0使用原始索引值，隐藏1使用扩展索引值，但是重复颜色的调色板会引起使用者怀疑。<br>本节中使用另外一种方法来隐藏信息，对于调色板中的每-种颜色，可以通过修改颜色的蓝色分量（人眼对于绿色分量最为敏感，对蓝色分量最不敏感）来增加一种接近的但不完全相同的颜色，这样就形成一个扩展的调色板。嵌人算法如下:对调色板中所有颜色，把像素点的蓝色分量增加，然后将这种颜色添加到调色板中形成一个扩展调色板。根据需要嵌人的消息长度，随机选取隐藏的位置，当嵌人0时，使用原调色板中的颜色，当嵌人1时，使用扩展后调色板中的颜色。<br>提取时，需要知道原始调色板的长度、随机选择的种子数和隐藏的信息数量，对于选中的像素点，如果使用原调色板中的颜色，提取信息0，如果使用扩展调色板中的颜色，提取信息1。</p>
+<h2 id="四、实验步骤"><a href="#四、实验步骤" class="headerlink" title="四、实验步骤"></a>四、实验步骤</h2><blockquote>
+<p>待加密信息为 you find me!</p>
+</blockquote>
+<img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex.bmp" class="" title="原始图像">
+
+<img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex1.bmp" class="" title="携密图像">
+
+<p>1、嵌入秘密信息</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">[x,map] &#x3D; imread(&#39;lenaindex.bmp&#39;,&#39;bmp&#39;);</span><br><span class="line">wx &#x3D; x;</span><br><span class="line">[row col] &#x3D; size(wx);</span><br><span class="line">wmap &#x3D; map;</span><br><span class="line"></span><br><span class="line">msgfid &#x3D; fopen(&#39;hidden.txt&#39;,&#39;r&#39;);</span><br><span class="line">[msg,count] &#x3D; fread(msgfid);</span><br><span class="line">fclose(msgfid);</span><br><span class="line">count &#x3D; count * 8;</span><br><span class="line">msg &#x3D; str2bit(msg);</span><br><span class="line">msg &#x3D; msg&#39;;</span><br><span class="line"></span><br><span class="line">%构造扩展map</span><br><span class="line">oplength &#x3D; 0;</span><br><span class="line">for i &#x3D; 1:256</span><br><span class="line">    if map(i,1) ~&#x3D; 0&amp;&amp;map(i,2) ~&#x3D; 0&amp;&amp;map(i,3) ~&#x3D; 0</span><br><span class="line">        oplength &#x3D; oplength + 1;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">for i &#x3D; oplength + 1:oplength * 2</span><br><span class="line">    wmap(i,1) &#x3D; map(i - oplength, 1);</span><br><span class="line">    wmap(i,2) &#x3D; map(i - oplength, 2);</span><br><span class="line">	%蓝色分量加0.0001</span><br><span class="line">    wmap(i,3) &#x3D; map(i - oplength, 3) + 0.0001; </span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">%确定隐藏位置</span><br><span class="line">key &#x3D; 1234;</span><br><span class="line">[row col] &#x3D; randselect(x,count,key);</span><br><span class="line"></span><br><span class="line">for i &#x3D; 1:count</span><br><span class="line">    if str2num(msg(i,1)) &#x3D;&#x3D; 1</span><br><span class="line">        wx(row(i),col(i)) &#x3D; x(row(i),col(i)) + oplength;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">imwrite(wx,map,&#39;lenaindex1.bmp&#39;,&#39;bmp&#39;);</span><br><span class="line">figure;</span><br><span class="line">subplot(1,2,1);imshow(&#39;lenaindex.bmp&#39;);title(&#39;原始图像&#39;);</span><br><span class="line">subplot(1,2,2);imshow(&#39;lenaindex1.bmp&#39;);title(&#39;携密图像&#39;);</span><br></pre></td></tr></table></figure>
+<p>2、提取秘密信息</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">%读入载体图像</span><br><span class="line">[x,map] &#x3D; imread(&#39;lenaindex1.bmp&#39;,&#39;bmp&#39;);</span><br><span class="line">key &#x3D; 1234;</span><br><span class="line">count &#x3D; 96;</span><br><span class="line">for i &#x3D; 1:count</span><br><span class="line">	msg(i, 1) &#x3D; 0;</span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">% 找到扩展起始颜色位置</span><br><span class="line">oplength &#x3D; 64;</span><br><span class="line"></span><br><span class="line">[row col] &#x3D; randselect(x,count,key);</span><br><span class="line">for i &#x3D; 1:count</span><br><span class="line">	if x(row(i),col(i))&gt;oplength</span><br><span class="line">		msg(i,1) &#x3D; 1;</span><br><span class="line">	else</span><br><span class="line">		msg(i,1) &#x3D; 0;</span><br><span class="line">	end</span><br><span class="line">end</span><br><span class="line">out &#x3D; bit2str(msg);</span><br><span class="line">fid &#x3D; fopen(&#39;message.txt&#39;,&#39;wt&#39;);</span><br><span class="line">fwrite(fid,out);</span><br><span class="line">fclose(fid);</span><br></pre></td></tr></table></figure>
+<p>3、随机位置函数</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function [row col] &#x3D; randselect(x,count,key)</span><br><span class="line">[m,n] &#x3D; size(x);</span><br><span class="line">distance1 &#x3D; ceil(m*n&#x2F;count);</span><br><span class="line">distance2 &#x3D; distance1 - 2;</span><br><span class="line">if distance2 &#x3D;&#x3D; 2</span><br><span class="line">    error(&#39;载体太小&#39;);</span><br><span class="line">end</span><br><span class="line">rand(&#39;state&#39;,key);</span><br><span class="line">a &#x3D; rand(1,count);</span><br><span class="line">row &#x3D; zeros([1 count]);</span><br><span class="line">col &#x3D; zeros([1 count]);</span><br><span class="line">r &#x3D; 1;</span><br><span class="line">c &#x3D; 1;</span><br><span class="line">row(1,1) &#x3D; r;</span><br><span class="line">col(1,1) &#x3D; c;</span><br><span class="line">for i&#x3D;2:count</span><br><span class="line">    if a(i)&gt;&#x3D;0.5</span><br><span class="line">        c&#x3D;c+distance1;</span><br><span class="line">    else</span><br><span class="line">        c&#x3D;c+distance2;</span><br><span class="line">    end</span><br><span class="line">    if c&gt;n</span><br><span class="line">        r&#x3D;r+1;</span><br><span class="line">        if r&gt;m</span><br><span class="line">            error(&#39;载体太小&#39;);</span><br><span class="line">        end</span><br><span class="line">        c &#x3D; mod(c,n);</span><br><span class="line">        if c&#x3D;&#x3D;0</span><br><span class="line">            c&#x3D;1;</span><br><span class="line">        end</span><br><span class="line">    end</span><br><span class="line">    row(1,i)&#x3D;r;</span><br><span class="line">    col(1,i)&#x3D;c;</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+<p>4、bit2str</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function [msg] &#x3D; bit2str(bin)</span><br><span class="line">[row col] &#x3D; size(bin);</span><br><span class="line">bin &#x3D; reshape(bin,[8 row&#x2F;8]);</span><br><span class="line">bin &#x3D; bin&#39;;</span><br><span class="line">bin &#x3D; num2str(bin);</span><br><span class="line">msg &#x3D; bin2dec(bin);</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+<p>5、str2bit</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function [bin] &#x3D; str2bit(msg)</span><br><span class="line">bin &#x3D; dec2base(msg,2,8);</span><br><span class="line">[row col] &#x3D; size(bin);</span><br><span class="line">bin &#x3D; reshape(bin.&#39;,[1 row*col]);</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>MISC</category>
+      </categories>
+      <tags>
+        <tag>MISC</tag>
+        <tag>图像</tag>
+        <tag>隐写</tag>
+      </tags>
+  </entry>
+</search>
