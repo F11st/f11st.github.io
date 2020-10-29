@@ -1,19 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>C++走过的路-C++中让两个数字输入的时候用逗号隔开</title>
-    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/</url>
-    <content><![CDATA[<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int a,b;</span><br><span class="line">cin &gt;&gt; a ;</span><br><span class="line">if (cin.get()&#x3D;&#x3D;&#39;,&#39; ) &#x2F;&#x2F;如果不按 数字+逗号+数字格式输入，则不允许输入第二个数，以达到限制要求      否则，用户输入数字+空格+数字也能达到输入两个数字</span><br><span class="line">&#123;</span><br><span class="line">  cin&gt;&gt;b ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-      <tags>
-        <tag>归档</tag>
-        <tag>C++</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>2019-CISCN</title>
     <url>/2019/08/29/2019-CISCN/</url>
     <content><![CDATA[<h1 id="初赛"><a href="#初赛" class="headerlink" title="初赛"></a>初赛</h1><h2 id="签到"><a href="#签到" class="headerlink" title="签到"></a>签到</h2><p>人脸识别</p>
@@ -58,6 +45,19 @@
         <tag>writeup</tag>
         <tag>CISCN</tag>
         <tag>2019</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++走过的路-C++中让两个数字输入的时候用逗号隔开</title>
+    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/</url>
+    <content><![CDATA[<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int a,b;</span><br><span class="line">cin &gt;&gt; a ;</span><br><span class="line">if (cin.get()&#x3D;&#x3D;&#39;,&#39; ) &#x2F;&#x2F;如果不按 数字+逗号+数字格式输入，则不允许输入第二个数，以达到限制要求      否则，用户输入数字+空格+数字也能达到输入两个数字</span><br><span class="line">&#123;</span><br><span class="line">  cin&gt;&gt;b ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>归档</tag>
+        <tag>C++</tag>
       </tags>
   </entry>
   <entry>
