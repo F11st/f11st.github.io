@@ -643,7 +643,10 @@
   <entry>
     <title>Windows驱动双机调试环境搭建</title>
     <url>/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
-    <content><![CDATA[<p>驱动调试为了避免调试过程中的各种蓝屏操作，一般会采用双机调试，在一个设备的情况下可以搭配VM进行调试。</p>
+    <content><![CDATA[<blockquote>
+<p><a href="https://docs.microsoft.com/zh-cn/windows-hardware/drivers/debugger/">Windows 调试工具（WinDbg、KD、CDB、NTSD） - Windows drivers | Microsoft Docs</a></p>
+</blockquote>
+<p>驱动调试为了避免调试过程中的各种蓝屏操作，一般会采用双机调试，在一个设备的情况下可以搭配VM进行调试。</p>
 <h1 id="Windbg-VMware"><a href="#Windbg-VMware" class="headerlink" title="Windbg + VMware"></a>Windbg + VMware</h1><blockquote>
 <p><strong>Host OS:</strong> Win10 21H2 LTSC</p>
 <p><strong>Guest OS:</strong> Win10 21H2 LTSC</p>
