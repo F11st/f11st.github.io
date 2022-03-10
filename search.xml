@@ -640,4 +640,64 @@
         <tag>Windows</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Windows驱动双机调试环境搭建</title>
+    <url>/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
+    <content><![CDATA[<p>驱动调试为了避免调试过程中的各种蓝屏操作，一般会采用双机调试，在一个设备的情况下可以搭配VM进行调试。</p>
+<h1 id="Windbg-VMware"><a href="#Windbg-VMware" class="headerlink" title="Windbg + VMware"></a>Windbg + VMware</h1><blockquote>
+<p><strong>Host OS:</strong> Win10 21H2 LTSC</p>
+<p><strong>Guest OS:</strong> Win10 21H2 LTSC</p>
+</blockquote>
+<p>因为部分设备不支持网络连接调试，这里介绍一下使用串口进行连接。</p>
+<h2 id="VM串口设置"><a href="#VM串口设置" class="headerlink" title="VM串口设置"></a>VM串口设置</h2><p>在虚拟机中添加串行端口，并进行如下设置。命名管道可自定义，但是需要与之后Windbg参数相同。</p>
+<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/vmsetting.png" class="" title="VMware设置">
+
+<h2 id="Guest-OS设置"><a href="#Guest-OS设置" class="headerlink" title="Guest OS设置"></a>Guest OS设置</h2><blockquote>
+<p><a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--dbgsettings">BCDEdit /dbgsettings - Windows drivers |微软文档 (microsoft.com)</a></p>
+</blockquote>
+<ol>
+<li><p>管理员启动命令行窗口，进行调试器全局设置</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /dbgsettings serial baudrate:<span class="number">115200</span> debugport:<span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>此处debugport应为命名管道对应的端口号，这里可通过vm设置中的命名来进行确认，通常虚拟机如果存在打印机的话COM1端口会被占用，所以一般会把打印机删除或者命名管道使用其他端口</p>
+<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/port.png" class="" title="COM端口"></li>
+<li><p>关闭数字签名校验</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /<span class="built_in">set</span> nointegritychecks on</span><br><span class="line">bcdedit /<span class="built_in">set</span> loadoptions DDISABLE_INTEGRITY_CHECKS</span><br></pre></td></tr></table></figure></li>
+<li><p>复制当前引导项，记录输出的ID</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /<span class="built_in">copy</span> &#123;current&#125; /d DriverDebugEntry</span><br></pre></td></tr></table></figure></li>
+<li><p>激活debug</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /debug &#123;ID&#125; ON</span><br><span class="line">bcdedit /bootdebug &#123;ID&#125; ON</span><br><span class="line">bcdedit /<span class="built_in">set</span> &#123;ID&#125; testsigning on</span><br></pre></td></tr></table></figure></li>
+<li><p>引导选择超时设置</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /timeout <span class="number">10</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cmdres.png" class="" title="bcdedit执行结果">
+
+<h2 id="启动Windbg"><a href="#启动Windbg" class="headerlink" title="启动Windbg"></a>启动Windbg</h2><p>在Host打开命令行，进入Windbg.exe目录下（注意区分x86/x64），输入</p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">./windbg.exe <span class="literal">-b</span> <span class="literal">-k</span> com:pipe,port=\\.\pipe\debugger,resets=<span class="number">0</span>,reconnect <span class="literal">-y</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注：port对应虚拟机所设置的命名管道</strong></p>
+<p>这时windbg会等待连接，重启虚拟机，在引导选择时选择刚才创建的引导项，可以在Windbg中看到连接成功，并自动中断，输入<code>g</code>进入系统，即可进行驱动调试。</p>
+<h1 id="VirtualKD-VMware"><a href="#VirtualKD-VMware" class="headerlink" title="VirtualKD + VMware"></a>VirtualKD + VMware</h1><blockquote>
+<p><a href="https://github.com/4d61726b/VirtualKD-Redux">4d61726b/VirtualKD-Redux: VirtualKD-Redux - A revival and modernization of VirtualKD (github.com)</a></p>
+</blockquote>
+<p>手动进行引导设置操作比较复杂，所以可以使用开源工具<strong>VirtualKD</strong>进行快速设置，其支持VMware以及Vbox</p>
+<ol>
+<li><p>在VirtualKD目录下target32或target64（对应虚拟机架构）拷贝到虚拟机中执行install进行安装</p>
+</li>
+<li><p>在主机中打开vmmon.exe，设置调试器路径</p>
+</li>
+<li><p>重启虚拟机在引导选择时按<strong>F8</strong>禁用签名校验，如果引导选择界面为windows新版的选择界面（不是传统上下键选择），则在高级设置里进行签名校验禁用</p>
+</li>
+<li><p>VirtualKD会自动打开调试器，按<code>g</code>即可进入系统</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Windows驱动</category>
+      </categories>
+      <tags>
+        <tag>开发</tag>
+        <tag>Windows驱动</tag>
+      </tags>
+  </entry>
 </search>
