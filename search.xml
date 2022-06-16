@@ -1,706 +1,410 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search>
-  <entry>
-    <title>C++走过的路-C++中让两个数字输入的时候用逗号隔开</title>
-    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/</url>
-    <content><![CDATA[<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">int a,b;</span><br><span class="line">cin &gt;&gt; a ;</span><br><span class="line">if (cin.get()==&#x27;,&#x27; ) //如果不按 数字+逗号+数字格式输入，则不允许输入第二个数，以达到限制要求      否则，用户输入数字+空格+数字也能达到输入两个数字</span><br><span class="line">&#123;</span><br><span class="line">  cin&gt;&gt;b ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
+<search> 
+  
+  
+    
+    <entry>
+      <title>Proxmox VE 7.1安装</title>
+      <link href="/2022/06/16/Proxmox-VE-7-1%E5%AE%89%E8%A3%85/"/>
+      <url>/2022/06/16/Proxmox-VE-7-1%E5%AE%89%E8%A3%85/</url>
+      
+        <content type="html"><![CDATA[<p>最近服务器原系统down掉了，之前对比过esxi、Hyper-v server、Proxmox VE，正好借此机会安装一次PVE。</p><h1 id="Proxmox-VE"><a href="#Proxmox-VE" class="headerlink" title="Proxmox VE"></a>Proxmox VE</h1><p>Proxmox Virtual Environment是一种基于QEMU&#x2F;KVM和LXC的开源服务器虚拟化管理解决方案。可以使用集成的、易于使用的 Web 界面或通过 CLI 管理虚拟机、容器、高可用性集群、存储和网络。</p><p>PVE有完善的开源社区，同时有内容丰富的<br><a href="https://pve.proxmox.com/wiki/Main_Page">Proxmox VE Wiki</a></p><h1 id="下载-amp-安装"><a href="#下载-amp-安装" class="headerlink" title="下载&amp;安装"></a>下载&amp;安装</h1><blockquote><p>下载链接 <a href="https://www.proxmox.com/en/downloads">https://www.proxmox.com/en/downloads</a></p></blockquote><p>安装可以把PVE的ISO写U盘做启动盘，或使用Ventoy。安装过程与Debian差不太多。</p><h1 id="配置静态IP"><a href="#配置静态IP" class="headerlink" title="配置静态IP"></a>配置静态IP</h1><h1 id="显卡直通"><a href="#显卡直通" class="headerlink" title="显卡直通"></a>显卡直通</h1><p>因为服务器端有跑ML的需求，vGPU的方案性能存在损耗，所以需要配置显卡直通。服务器那边GPU是张2080的卡。</p><p>GPU也属于PCI设备，所以主要参照的方法来自于官方WIKI，另外有踩坑可以参照前人blog。</p><p><strong>这里有一点要注意，要提前配置静态IP，如果显卡直通后物理机不能使用显卡，会无法操作物理机。</strong></p><blockquote><p><a href="https://pve.proxmox.com/wiki/Pci_passthrough">PCI 设备直通 - Wiki</a></p></blockquote><h2 id="启用IOMMU"><a href="#启用IOMMU" class="headerlink" title="启用IOMMU"></a>启用IOMMU</h2><p>在BIOS中开启VT-d</p><p>进入PVE后在grub中做如下修改</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">- GRUB_CMDLINE_LINUX_DEFAULT=<span class="string">&quot;quiet&quot;</span></span><br><span class="line">+ GRUB_CMDLINE_LINUX_DEFAULT=<span class="string">&quot;quiet intel_iommu=on iommu=pt pcie_acs_override=downstream video=efifb:off&quot;</span></span><br></pre></td></tr></table></figure><p>参数含义如下：</p><ul><li>intel_iommu&#x3D;on：开启 IOMMU，对于 AMD CPU 需要使用 amd_iommu&#x3D;on</li><li>iommu&#x3D;pt：pt 是 passthrough 的缩写，可以提高性能</li><li>pcie_acs_override&#x3D;downstream: 可以将同一 Group 中的设备分开直通</li><li>video&#x3D;efifb:off：禁用 efifb 驱动，防止出现报错 BAR 3: cannot reserve [mem]</li></ul><p>保存grub修改</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update-grub</span><br></pre></td></tr></table></figure><p>重启后，输入<code>dmesg | grep -e DMAR -e IOMMU</code>来查看是否成功，如果成功会提示<code>DMAR: IOMMU enabled</code></p><h1 id="添加内核模块"><a href="#添加内核模块" class="headerlink" title="添加内核模块"></a>添加内核模块</h1><p>在&#x2F;etc&#x2F;modules中添加</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vfio</span><br><span class="line">vfio_iommu_type1</span><br><span class="line">vfio_pci</span><br><span class="line">vfio_virqfd</span><br></pre></td></tr></table></figure><h1 id="IOMMU-Interrupt-Remapping"><a href="#IOMMU-Interrupt-Remapping" class="headerlink" title="IOMMU Interrupt Remapping"></a>IOMMU Interrupt Remapping</h1><p>输入<code>dmesg | grep &#39;remapping&#39;</code>来查看是否支持Interrupt Remapping，如果提示如下：</p><ul><li>“AMD-Vi: Interrupt remapping enabled”</li><li>“DMAR-IR: Enabled IRQ remapping in x2apic mode”</li></ul><p>则支持，如果不支持输入如下命令</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;options vfio_iommu_type1 allow_unsafe_interrupts=1&quot;</span> &gt; /etc/modprobe.d/iommu_unsafe_interrupts.conf</span><br></pre></td></tr></table></figure><h1 id="GPU直通"><a href="#GPU直通" class="headerlink" title="GPU直通"></a>GPU直通</h1><p>首先，找到vga卡的设备和供应商ID：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lspci -nn</span><br></pre></td></tr></table></figure><p>类似</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK107 [GeForce GTX 650] [10de:0fc6] (rev a1)</span><br><span class="line">01:00.1 Audio device [0403]: NVIDIA Corporation GK107 HDMI Audio Controller [10de:0e1b] (rev a1)</span><br></pre></td></tr></table></figure><p>10de:0fc6,10de:0e1b即为ID</p><p>然后，创建一个文件：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;options vfio-pci ids=10de:1381,10de:0fbc&quot;</span> &gt; /etc/modprobe.d/vfio.conf</span><br></pre></td></tr></table></figure><p>将驱动程序列入黑名单：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;blacklist radeon&quot;</span> &gt;&gt; /etc/modprobe.d/blacklist.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;blacklist nouveau&quot;</span> &gt;&gt; /etc/modprobe.d/blacklist.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;blacklist nvidia&quot;</span> &gt;&gt; /etc/modprobe.d/blacklist.conf</span><br></pre></td></tr></table></figure><p>重新启动计算机。</p>]]></content>
+      
+      
       <categories>
-        <category>C++</category>
+          
+          <category> 运维 </category>
+          
       </categories>
-      <tags>
-        <tag>归档</tag>
-        <tag>C++</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2019-CISCN</title>
-    <url>/2019/08/29/2019-CISCN/</url>
-    <content><![CDATA[<h1 id="初赛"><a href="#初赛" class="headerlink" title="初赛"></a>初赛</h1><h2 id="签到"><a href="#签到" class="headerlink" title="签到"></a>签到</h2><p>人脸识别</p>
-<h2 id="easyGO"><a href="#easyGO" class="headerlink" title="easyGO"></a>easyGO</h2><p>gdb里面动态调试，第一个call步进，然后一路单步下去，能直接找到真flag</p>
-<img src="/2019/08/29/2019-CISCN/1.png" class="" title="easyGO">
-<h2 id="puzzles"><a href="#puzzles" class="headerlink" title="puzzles"></a>puzzles</h2><p>数学题。。队里数学大佬写的（考研人无敌）</p>
-<h3 id="question-0"><a href="#question-0" class="headerlink" title="question 0"></a>question 0</h3><img src="/2019/08/29/2019-CISCN/2.1.png" class="" title="question 0">
-<p>写脚本求解</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> scipy.linalg <span class="keyword">import</span> solve</span><br><span class="line">a = np.array([[<span class="number">13627</span>, <span class="number">26183</span>, <span class="number">35897</span>, <span class="number">48119</span>], [<span class="number">23027</span>,<span class="number">38459</span>,<span class="number">40351</span>,<span class="number">19961</span>], [<span class="number">36013</span>,<span class="number">45589</span>,<span class="number">17029</span>,<span class="number">27823</span>],[<span class="number">43189</span>,<span class="number">12269</span>,<span class="number">21587</span>,<span class="number">33721</span>]])</span><br><span class="line">b = np.array([<span class="number">347561292</span>,<span class="number">361760202</span>,<span class="number">397301762</span>,<span class="number">350830412</span>])</span><br><span class="line">x = solve(a, b)</span><br><span class="line"><span class="built_in">print</span>(x) </span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>a1,a2,a3,a4=[4006,3053,2503,2560]</p>
-</blockquote>
-<h3 id="question-1"><a href="#question-1" class="headerlink" title="question 1"></a>question 1</h3><img src="/2019/08/29/2019-CISCN/2.2.png" class="" title="question 1">
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">handlerNum</span>(<span class="params">num</span>):</span></span><br><span class="line">    <span class="keyword">if</span> num &gt; <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>, num//<span class="number">2</span>+<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> (num % i) == <span class="number">0</span>:</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">26364809</span>, <span class="number">26366033</span>):</span><br><span class="line">        <span class="keyword">if</span> handlerNum(i):</span><br><span class="line">            <span class="built_in">print</span>(i)</span><br></pre></td></tr></table></figure>
-<p>Part1 = 26365399</p>
-<h3 id="question-2"><a href="#question-2" class="headerlink" title="question 2"></a>question 2</h3><img src="/2019/08/29/2019-CISCN/2.3.png" class="" title="question 2">
-<p>第一部分洛必达，第二第三部分正常积分，第四部分分部积分:</p>
-<img src="/2019/08/29/2019-CISCN/2.4.jpg" class="" title="question 2">
-<h3 id="question-3"><a href="#question-3" class="headerlink" title="question 3"></a>question 3</h3><img src="/2019/08/29/2019-CISCN/2.5.png" class="" title="question 3">
-<img src="/2019/08/29/2019-CISCN/2.6.jpg" class="" title="question 3">
-<h3 id="question-4"><a href="#question-4" class="headerlink" title="question 4"></a>question 4</h3><img src="/2019/08/29/2019-CISCN/2.7.png" class="" title="question 4">
-<p>柱面法解三重积分</p>
-<img src="/2019/08/29/2019-CISCN/2.8.jpg" class="" title="question 4">
-
-<p>组合得FLAG</p>
-<h2 id="JustSoso"><a href="#JustSoso" class="headerlink" title="JustSoso"></a>JustSoso</h2><p>伪协议读文件，基本的反序列化。</p>
-<h2 id="your-pwn"><a href="#your-pwn" class="headerlink" title="your_pwn"></a>your_pwn</h2><p>数组下标没有check，可以越界读写。gdb里面动态调试先确定libc和返回地址的偏移，相当于数组的632和344，然后利用数组越界泄露__libc_start_main地址然后计算libc基址，然后把libc+one_gadget的地址写入返回地址。</p>
-<h2 id="saleae"><a href="#saleae" class="headerlink" title="saleae"></a>saleae</h2><p>下载saleae即可读取</p>
-<h2 id="usbasp"><a href="#usbasp" class="headerlink" title="usbasp"></a>usbasp</h2><p>同上</p>
-<h2 id="24C"><a href="#24C" class="headerlink" title="24C"></a>24C</h2><p>同上，set up write to信号的下一行字符的ASCII值表示接下来数据要修改的位置，在5.9s左右的set up write信号下将字符ac覆盖了9e的位置</p>
-<h2 id="daily"><a href="#daily" class="headerlink" title="daily"></a>daily</h2><p>show函数存在漏洞，输出的时候未截断，能leak出heap与libc的地址<br>fastbins的free能泄露出heap的地址<br>smallbins的free能泄露出libc的地址<br>delete()的free没有检查下标，能构造double free，从而修改free 地址为system，构造system(‘/bin/sh’)并执行</p>
-<img src="/2019/08/29/2019-CISCN/3.png" class="" title="daily">
-<h2 id="全宇宙最简单的SQL"><a href="#全宇宙最简单的SQL" class="headerlink" title="全宇宙最简单的SQL"></a>全宇宙最简单的SQL</h2><p>主要用到虚拟表和exp报错</p>
-<h2 id="partdes"><a href="#partdes" class="headerlink" title="partdes"></a>partdes</h2><p>第13轮解出字符串</p>
-<h2 id="baby-pwn"><a href="#baby-pwn" class="headerlink" title="baby_pwn"></a>baby_pwn</h2><p>ret2dlresolve,用roputils直接生成ropchain来getshell</p>
-<img src="/2019/08/29/2019-CISCN/4.png" class="" title="baby_pwn">]]></content>
+      
+      
+        <tags>
+            
+            <tag> 运维 </tag>
+            
+            <tag> 虚拟化 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>服务器运维常用命令</title>
+      <link href="/2022/06/02/%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%90%E7%BB%B4%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+      <url>/2022/06/02/%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%90%E7%BB%B4%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
+      
+        <content type="html"><![CDATA[<p>1、查看有多少个IP访问：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;print $1&#125;&#x27; log_file|sort|uniq|wc -l</span><br></pre></td></tr></table></figure><p>2、查看某一个页面被访问的次数：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep &quot;/index.php&quot; log_file | wc -l</span><br></pre></td></tr></table></figure><p>3、查看每一个IP访问了多少个页面：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;++S[$1]&#125; END &#123;for (a in S) print a,S[a]&#125;&#x27; log_file &gt; log.txt</span><br><span class="line">sort -n -t &#x27; &#x27; -k 2 log.txt 配合sort进一步排序</span><br></pre></td></tr></table></figure><p>4、将每个IP访问的页面数进行从小到大排序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;++S[$1]&#125; END &#123;for (a in S) print S[a],a&#125;&#x27; log_file | sort -n</span><br></pre></td></tr></table></figure><p>5、查看某一个IP访问了哪些页面：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep ^111.111.111.111 log_file| awk &#x27;&#123;print $1,$7&#125;&#x27;</span><br></pre></td></tr></table></figure><p>6、去掉搜索引擎统计的页面：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;print $12,$1&#125;&#x27; log_file | grep ^\&quot;Mozilla | awk &#x27;&#123;print $2&#125;&#x27; |sort | uniq | wc -l</span><br></pre></td></tr></table></figure><p>7、查看2015年8月16日14时这一个小时内有多少IP访问:</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;print $4,$1&#125;&#x27; log_file | grep 16/Aug/2015:14 | awk &#x27;&#123;print $2&#125;&#x27;| sort | uniq | wc -l</span><br></pre></td></tr></table></figure><p>8、查看访问前十个ip地址</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;print $1&#125;&#x27; |sort|uniq -c|sort -nr |head -10 access_log</span><br></pre></td></tr></table></figure><blockquote><p>uniq -c 相当于分组统计并把统计数放在最前面</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log|awk &#x27;&#123;print $1&#125;&#x27;|sort|uniq -c|sort -nr|head -10</span><br></pre></td></tr></table></figure><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log|awk &#x27;&#123;counts[$(11)]+=1&#125;; END &#123;for(url in counts) print counts[url], url&#125;</span><br></pre></td></tr></table></figure><p>9、访问次数最多的10个文件或页面</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cat log_file|awk &#x27;&#123;print $11&#125;&#x27;|sort|uniq -c|sort -nr | head -10</span><br><span class="line">cat log_file|awk &#x27;&#123;print $11&#125;&#x27;|sort|uniq -c|sort -nr|head -20</span><br><span class="line">awk &#x27;&#123;print $1&#125;&#x27; log_file |sort -n -r |uniq -c | sort -n -r | head -20</span><br></pre></td></tr></table></figure><blockquote><p>访问量最大的前20个ip</p></blockquote><p>10、通过子域名访问次数，依据referer来计算，稍有不准</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log | awk &#x27;&#123;print $11&#125;&#x27; | sed -e &#x27; s/http:\/\///&#x27; -e &#x27; s/\/.*//&#x27; | sort | uniq -c | sort -rn | head -20</span><br></pre></td></tr></table></figure><p>11、列出传输大小最大的几个文件</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat www.access.log |awk &#x27;($7~/\.php/)&#123;print $10 &quot; &quot; $1 &quot; &quot; $4 &quot; &quot; $7&#125;&#x27;|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>12、列出输出大于200000byte(约200kb)的页面以及对应页面发生次数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat www.access.log |awk &#x27;($10 &gt; 200000 &amp;&amp; $7~/\.php/)&#123;print $7&#125;&#x27;|sort -n|uniq -c|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>13、如果日志最后一列记录的是页面文件传输时间，则有列出到客户端最耗时的页面</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat www.access.log |awk &#x27;($7~/\.php/)&#123;print $NF &quot; &quot; $1 &quot; &quot; $4 &quot; &quot; $7&#125;&#x27;|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>14、列出最最耗时的页面(超过60秒的)的以及对应页面发生次数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat www.access.log |awk &#x27;($NF &gt; 60 &amp;&amp; $7~/\.php/)&#123;print $7&#125;&#x27;|sort -n|uniq -c|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>15、列出传输时间超过 30 秒的文件</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat www.access.log |awk &#x27;($NF &gt; 30)&#123;print $7&#125;&#x27;|sort -n|uniq -c|sort -nr|head -20</span><br></pre></td></tr></table></figure><p>16、列出当前服务器每一进程运行的数量，倒序排列</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | awk -F &#x27; &#x27; &#x27;&#123;print $8 &quot; &quot; $9&#125;&#x27; |sort | uniq -c |sort -nr |head -20</span><br></pre></td></tr></table></figure><p>17、查看apache当前并发访问数</p><p>对比httpd.conf中MaxClients的数字差距多少</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -an | grep ESTABLISHED | wc -l</span><br></pre></td></tr></table></figure><p>18、可以使用如下参数查看数据</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ps -ef|grep httpd|wc -l</span><br><span class="line">1388</span><br></pre></td></tr></table></figure><p>统计httpd进程数，连个请求会启动一个进程，使用于Apache服务器。</p><p>表示Apache能够处理1388个并发请求，这个值Apache可根据负载情况自动调整</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netstat -nat|grep -i &quot;80&quot;|wc -l</span><br><span class="line">4341</span><br></pre></td></tr></table></figure><blockquote><p>netstat -an会打印系统当前网络链接状态，而grep -i “80”是用来提取与80端口有关的连接的，wc -l进行连接数统计。</p><p>最终返回的数字就是当前所有80端口的请求总数</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netstat -na|grep ESTABLISHED|wc -l</span><br><span class="line">376</span><br></pre></td></tr></table></figure><blockquote><p>netstat -an会打印系统当前网络链接状态，而grep ESTABLISHED 提取出已建立连接的信息。然后wc -l统计</p><p>最终返回的数字就是当前所有80端口的已建立连接的总数。</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -nat||grep ESTABLISHED|wc</span><br></pre></td></tr></table></figure><p>可查看所有建立连接的详细记录</p><p>19、输出每个ip的连接数，以及总的各个状态的连接数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -n | awk &#x27;/^tcp/ &#123;n=split($(NF-1),array,&quot;:&quot;);if(n&lt;=2)++S[array[(1)]];else++S[array[(4)]];++s[$NF];++N&#125; END &#123;for(a in S)&#123;printf(&quot;%-20s %s\n&quot;, a, S[a]);++I&#125;printf(&quot;%-20s %s\n&quot;,&quot;TOTAL_IP&quot;,I);for(a in s) printf(&quot;%-20s %s\n&quot;,a, s[a]);printf(&quot;%-20s %s\n&quot;,&quot;TOTAL_LINK&quot;,N);&#125;&#x27;</span><br></pre></td></tr></table></figure><p>20、其他的收集</p><p>分析日志文件下 2012-05-04 访问页面最高 的前20个 URL 并排序</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log |grep &#x27;04/May/2012&#x27;| awk &#x27;&#123;print $11&#125;&#x27;|sort|uniq -c|sort -nr|head -20</span><br></pre></td></tr></table></figure><p>查询受访问页面的URL地址中 含有 <a href="http://www.abc.com/">www.abc.com</a> 网址的 IP 地址</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access_log | awk &#x27;($11~/\www.abc.com/)&#123;print $1&#125;&#x27;|sort|uniq -c|sort -nr</span><br></pre></td></tr></table></figure><p>获取访问最高的10个IP地址 同时也可以按时间来查询</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat linewow-access.log|awk &#x27;&#123;print $1&#125;&#x27;|sort|uniq -c|sort -nr|head -10</span><br></pre></td></tr></table></figure><p>时间段查询日志时间段的情况</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat log_file | egrep &#x27;15/Aug/2015|16/Aug/2015&#x27; |awk &#x27;&#123;print $1&#125;&#x27;|sort|uniq -c|sort -nr|head -10</span><br></pre></td></tr></table></figure><p>分析 2015&#x2F;8&#x2F;15 到 2015&#x2F;8&#x2F;16 访问”&#x2F;index.php?g&#x3D;Member&amp;m&#x3D;Public&amp;a&#x3D;sendValidCode”的IP倒序排列</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat log_file | egrep &#x27;15/Aug/2015|16/Aug/2015&#x27; | awk &#x27;&#123;if($7 == &quot;/index.php?g=Member&amp;m=Public&amp;a=sendValidCode&quot;) print $1,$7&#125;&#x27;|sort|uniq -c|sort -nr</span><br></pre></td></tr></table></figure><blockquote><p>($7 ~ &#x2F;.php&#x2F;) $7里面包含.php的就输出,本句的意思是最耗时的一百个PHP页面</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat log_file |awk &#x27;($7~/\.php/)&#123;print $NF &quot; &quot; $1 &quot; &quot; $4 &quot; &quot; $7&#125;&#x27;|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>列出最最耗时的页面(超过60秒的)的以及对应页面发生次数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log |awk &#x27;($NF &gt; 60 &amp;&amp; $7~/\.php/)&#123;print $7&#125;&#x27;|sort -n|uniq -c|sort -nr|head -100</span><br></pre></td></tr></table></figure><p>统计网站流量（G)</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log |awk &#x27;&#123;sum+=$10&#125; END &#123;print sum/1024/1024/1024&#125;&#x27;</span><br></pre></td></tr></table></figure><p>统计404的连接</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;($9 ~/404/)&#x27; access.log | awk &#x27;&#123;print $9,$7&#125;&#x27; | sort</span><br></pre></td></tr></table></figure><p>统计http status</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat access.log |awk &#x27;&#123;counts[$(9)]+=1&#125;; END &#123;for(code in counts) print code, counts[code]&#125;&#x27;</span><br><span class="line">cat access.log |awk &#x27;&#123;print $9&#125;&#x27;|sort|uniq -c|sort -rn</span><br></pre></td></tr></table></figure><p>每秒并发</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">watch &quot;awk &#x27;&#123;if($9~/200|30|404/)COUNT[$4]++&#125;END&#123;for( a in COUNT) print a,COUNT[a]&#125;&#x27; log_file|sort -k 2 -nr|head -n10&quot;</span><br></pre></td></tr></table></figure><p>带宽统计</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat apache.log |awk &#x27;&#123;if($7~/GET/) count++&#125;END&#123;print &quot;client_request=&quot;count&#125;&#x27;</span><br></pre></td></tr></table></figure><p>找出某天访问次数最多的10个IP</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /tmp/access.log | grep &quot;20/Mar/2011&quot; |awk &#x27;&#123;print $3&#125;&#x27;|sort |uniq -c|sort -nr|head</span><br></pre></td></tr></table></figure><p>当天ip连接数最高的ip都在干些什么</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat access.log | grep &quot;10.0.21.17&quot; | awk &#x27;&#123;print $8&#125;&#x27; | sort | uniq -c | sort -nr | head -n 10</span><br></pre></td></tr></table></figure><p>小时单位里ip连接数最多的10个时段</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk -vFS=&quot;[:]&quot; &#x27;&#123;gsub(&quot;-.*&quot;,&quot;&quot;,$1);num[$2&quot; &quot;$1]++&#125;END&#123;for(i in num)print i,num[i]&#125;&#x27; log_file | sort -n -k 3 -r | head -10</span><br></pre></td></tr></table></figure><p>找出访问次数最多的几个分钟</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &#x27;&#123;print $1&#125;&#x27; access.log | grep &quot;20/Mar/2011&quot; |cut -c 14-18|sort|uniq -c|sort -nr|head</span><br></pre></td></tr></table></figure><p>取5分钟日志</p><p><code>if [ $DATE_MINUTE != $DATE_END_MINUTE ] ;then #</code></p><p>则判断开始时间戳与结束时间戳是否相等</p><p><code>START_LINE=sed -n &quot;/$DATE_MINUTE/=&quot; $APACHE_LOG|head -n1</code> #如果不相等，则取出开始时间戳的行号，与结束时间戳的行号</p><p>查看tcp的链接状态</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">netstat -nat |awk &#x27;&#123;print $6&#125;&#x27;|sort|uniq -c|sort -rn </span><br><span class="line"></span><br><span class="line">netstat -n | awk &#x27;/^tcp/ &#123;++S[$NF]&#125;;END &#123;for(a in S) print a, S[a]&#125;&#x27; </span><br><span class="line"></span><br><span class="line">netstat -n | awk &#x27;/^tcp/ &#123;++state[$NF]&#125;; END &#123;for(key in state) print key,&quot;\t&quot;,state[key]&#125;&#x27; </span><br><span class="line"></span><br><span class="line">netstat -n | awk &#x27;/^tcp/ &#123;++arr[$NF]&#125;;END &#123;for(k in arr) print k,&quot;\t&quot;,arr[k]&#125;&#x27; </span><br><span class="line"></span><br><span class="line">netstat -n |awk &#x27;/^tcp/ &#123;print $NF&#125;&#x27;|sort|uniq -c|sort -rn </span><br><span class="line"></span><br><span class="line">netstat -ant | awk &#x27;&#123;print $NF&#125;&#x27; | grep -v &#x27;[a-z]&#x27; | sort | uniq -c</span><br><span class="line">netstat -ant|awk &#x27;/ip:80/&#123;split($5,ip,&quot;:&quot;);++S[ip[1]]&#125;END&#123;for (a in S) print S[a],a&#125;&#x27; |sort -n </span><br><span class="line"></span><br><span class="line">netstat -ant|awk &#x27;/:80/&#123;split($5,ip,&quot;:&quot;);++S[ip[1]]&#125;END&#123;for (a in S) print S[a],a&#125;&#x27; |sort -rn|head -n 10 </span><br><span class="line"></span><br><span class="line">awk &#x27;BEGIN&#123;printf (&quot;http_code\tcount_num\n&quot;)&#125;&#123;COUNT[$10]++&#125;END&#123;for (a in COUNT) printf a&quot;\t\t&quot;COUNT[a]&quot;\n&quot;&#125;&#x27;</span><br></pre></td></tr></table></figure><p>查找请求数前20个IP（常用于查找攻来源）：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netstat -anlp|grep 80|grep tcp|awk &#x27;&#123;print $5&#125;&#x27;|awk -F: &#x27;&#123;print $1&#125;&#x27;|sort|uniq -c|sort -nr|head -n20 </span><br><span class="line">netstat -ant |awk &#x27;/:80/&#123;split($5,ip,&quot;:&quot;);++A[ip[1]]&#125;END&#123;for(i in A) print A[i],i&#125;&#x27; |sort -rn|head -n20</span><br></pre></td></tr></table></figure><p>用tcpdump嗅探80端口的访问看看谁最高</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F&quot;.&quot; &#x27;&#123;print $1&quot;.&quot;$2&quot;.&quot;$3&quot;.&quot;$4&#125;&#x27; | sort | uniq -c | sort -nr |head -20</span><br></pre></td></tr></table></figure><p>查找较多time_wait连接</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -n|grep TIME_WAIT|awk &#x27;&#123;print $5&#125;&#x27;|sort|uniq -c|sort -rn|head -n20</span><br></pre></td></tr></table></figure><p>找查较多的SYN连接</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -an | grep SYN | awk &#x27;&#123;print $5&#125;&#x27; | awk -F: &#x27;&#123;print $1&#125;&#x27; | sort | uniq -c | sort -nr | more</span><br></pre></td></tr></table></figure><p>根据端口列进程</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -ntlp | grep 80 | awk &#x27;&#123;print $7&#125;&#x27; | cut -d/ -f1</span><br></pre></td></tr></table></figure><p>查看了连接数和当前的连接数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netstat -ant | grep $ip:80 | wc -l </span><br><span class="line">netstat -ant | grep $ip:80 | grep EST | wc -l</span><br></pre></td></tr></table></figure><p>查看IP访问次数</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -nat|grep &quot;:80&quot;|awk &#x27;&#123;print $5&#125;&#x27; |awk -F: &#x27;&#123;print $1&#125;&#x27; | sort| uniq -c|sort -n</span><br></pre></td></tr></table></figure><p>Linux命令分析当前的链接状况</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -n | awk &#x27;/^tcp/ &#123;++S[$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;&#x27;</span><br></pre></td></tr></table></figure><p><code>watch &quot;netstat -n | awk &#39;/^tcp/ &#123;++S[\$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;&#39;&quot;</code> #通过watch可以一直监控</p><blockquote><p>LAST_ACK 5 #关闭一个TCP连接需要从两个方向上分别进行关闭，双方都是通过发送FIN来表示单方向数据的关闭，当通信双方发送了最后一个FIN的时候，发送方此时处于LAST_ACK状态，当发送方收到对方的确认（Fin的Ack确认）后才真正关闭整个TCP连接；</p><p>SYN_RECV 30 # 表示正在等待处理的请求数；</p><p>ESTABLISHED 1597 # 表示正常数据传输状态；</p><p>FIN_WAIT1 51 # 表示server端主动要求关闭tcp连接；</p><p>FIN_WAIT2 504 # 表示客户端中断连接；</p><p>TIME_WAIT 1057 # 表示处理完毕，等待超时结束的请求数；</p></blockquote>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 运维 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>windbg常用命令</title>
+      <link href="/2022/03/11/windbg%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+      <url>/2022/03/11/windbg%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</url>
+      
+        <content type="html"><![CDATA[<p>只记录基本指令，详细使用方法可使用<code>.hh</code>命令进行查看</p><h1 id="调试指令"><a href="#调试指令" class="headerlink" title="调试指令"></a>调试指令</h1><p><code>g</code> 继续</p><p><code>lm</code> 列出所有加载的模块</p><p><code>x</code> 列出符号。<code>x ConsoleTest!*</code> 列出ConsoleTest模块中的所有符号，<code>x ConsoleTest!add*</code> 列出ConsoleTest模块中的所有add开头的符号</p><p><code>bp</code> 下断点</p><h1 id="进程相关"><a href="#进程相关" class="headerlink" title="进程相关"></a>进程相关</h1><h2 id="process"><a href="#process" class="headerlink" title=".process"></a>.process</h2><p><strong>.process</strong> [<strong>&#x2F;i</strong>] [<strong>&#x2F;p</strong> [<strong>&#x2F;r</strong>]] [<strong>&#x2F;P</strong>] [<em>Process</em>]</p><p>切换上下文</p><p><code>.process /r /p &lt;cid/EPROCESS&gt;</code> 非侵入式，只切换命令上下文</p><p><code>.process /i &lt;cid/EPROCESS&gt;</code>侵入式，进行进程切换</p><h2 id="process-1"><a href="#process-1" class="headerlink" title="!process"></a>!process</h2><p><code>!process [/s Session] [/m Module] [Process [Flags]]</code><br><code>!process [/s Session] [/m Module] 0 Flags ImageName</code></p><p>查询进程信息</p><p><code>!process 0 0</code>显示进程列表（Flags 0代表显示基本信息）</p><p><code>!process 0 0 &lt;proc_name&gt;.exe</code>查找指定进程</p><p><code>!process &lt;cid/EPROCESS&gt; 0</code>查找指定进程</p><h2 id="reload"><a href="#reload" class="headerlink" title=".reload"></a>.reload</h2><p><strong>.reload</strong> [<em><strong>Options</strong></em>] [<em><strong>Module</strong></em>[&#x3D;<em><strong>Address</strong></em>[,<em><strong>Size</strong></em>[,<em><strong>Timestamp</strong></em>]]]]</p><p>重载符号</p><p><code>.reload /user</code>加载user mode符号</p>]]></content>
+      
+      
       <categories>
-        <category>CTF</category>
+          
+          <category> 开发 </category>
+          
       </categories>
-      <tags>
-        <tag>CTF</tag>
-        <tag>writeup</tag>
-        <tag>CISCN</tag>
-        <tag>2019</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>C++走过的路-使用cin保留小数位数</title>
-    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E4%BD%BF%E7%94%A8cin%E4%BF%9D%E7%95%99%E5%B0%8F%E6%95%B0%E4%BD%8D%E6%95%B0/</url>
-    <content><![CDATA[<blockquote>
-<p>闲时把大一刚开始学C++时遇到的一些小问题记得笔记转移过来，顺便重温了一下当时（^_^）</p>
-</blockquote>
-<p><strong>以保留2位小数为例,代码如下:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#include &lt;iostream&gt;</span><br><span class="line">#include &lt;iomanip&gt;</span><br><span class="line">using namespace std;</span><br><span class="line"></span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    double a;</span><br><span class="line">    cin&gt;&gt;a;</span><br><span class="line">    cout&lt;&lt;setiosflags(ios::fixed)&lt;&lt;setprecision(2)&lt;&lt;a&lt;&lt;endl;//fixed为实数输出，若改为scientifitic则是科学技术法输出；setprecision(2)此处表示设置精度为2</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 调试 </tag>
+            
+            <tag> Windows驱动 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Windows驱动双机调试环境搭建</title>
+      <link href="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"/>
+      <url>/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
+      
+        <content type="html"><![CDATA[<blockquote><p><a href="https://docs.microsoft.com/zh-cn/windows-hardware/drivers/debugger/">Windows 调试工具（WinDbg、KD、CDB、NTSD） - Windows drivers | Microsoft Docs</a></p></blockquote><p>驱动调试为了避免调试过程中的各种蓝屏操作，一般会采用双机调试，在一个设备的情况下可以搭配VM进行调试。</p><h1 id="Windbg-VMware"><a href="#Windbg-VMware" class="headerlink" title="Windbg + VMware"></a>Windbg + VMware</h1><blockquote><p><strong>Host OS:</strong> Win10 21H2 LTSC</p><p><strong>Guest OS:</strong> Win10 21H2 LTSC</p></blockquote><p>因为部分设备不支持网络连接调试，这里介绍一下使用串口进行连接。</p><h2 id="VM串口设置"><a href="#VM串口设置" class="headerlink" title="VM串口设置"></a>VM串口设置</h2><p>在虚拟机中添加串行端口，并进行如下设置。命名管道可自定义，但是需要与之后Windbg参数相同。</p><img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/vmsetting.png" class="" title="VMware设置"><h2 id="Guest-OS设置"><a href="#Guest-OS设置" class="headerlink" title="Guest OS设置"></a>Guest OS设置</h2><blockquote><p><a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--dbgsettings">BCDEdit &#x2F;dbgsettings - Windows drivers |微软文档 (microsoft.com)</a></p></blockquote><ol><li><p>管理员启动命令行窗口，进行调试器全局设置</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bcdedit /dbgsettings serial baudrate:<span class="number">115200</span> debugport:<span class="number">1</span></span><br></pre></td></tr></table></figure><p>此处debugport应为命名管道对应的端口号，这里可通过vm设置中的命名来进行确认，通常虚拟机如果存在打印机的话COM1端口会被占用，所以一般会把打印机删除或者命名管道使用其他端口</p><img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/port.png" class="" title="COM端口"></li><li><p>关闭数字签名校验</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">bcdedit /<span class="built_in">set</span> nointegritychecks on</span><br><span class="line">bcdedit /<span class="built_in">set</span> loadoptions DDISABLE_INTEGRITY_CHECKS</span><br></pre></td></tr></table></figure></li><li><p>复制当前引导项，记录输出的ID</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bcdedit /<span class="built_in">copy</span> &#123;current&#125; /d DriverDebugEntry</span><br></pre></td></tr></table></figure></li><li><p>激活debug</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bcdedit /debug &#123;ID&#125; ON</span><br><span class="line">bcdedit /bootdebug &#123;ID&#125; ON</span><br><span class="line">bcdedit /<span class="built_in">set</span> &#123;ID&#125; testsigning on</span><br></pre></td></tr></table></figure></li><li><p>引导选择超时设置</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bcdedit /timeout <span class="number">10</span></span><br></pre></td></tr></table></figure></li></ol><img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cmdres.png" class="" title="bcdedit执行结果"><h2 id="启动Windbg"><a href="#启动Windbg" class="headerlink" title="启动Windbg"></a>启动Windbg</h2><p>在Host打开命令行，进入Windbg.exe目录下（注意区分x86&#x2F;x64），输入</p><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./windbg.exe <span class="literal">-b</span> <span class="literal">-k</span> com:pipe,port=\\.\pipe\debugger,resets=<span class="number">0</span>,reconnect <span class="literal">-y</span></span><br></pre></td></tr></table></figure><p><strong>注：port对应虚拟机所设置的命名管道</strong></p><p>这时windbg会等待连接，重启虚拟机，在引导选择时选择刚才创建的引导项，可以在Windbg中看到连接成功，并自动中断，输入<code>g</code>进入系统，即可进行驱动调试。</p><h1 id="VirtualKD-VMware"><a href="#VirtualKD-VMware" class="headerlink" title="VirtualKD + VMware"></a>VirtualKD + VMware</h1><blockquote><p><a href="https://github.com/4d61726b/VirtualKD-Redux">4d61726b&#x2F;VirtualKD-Redux: VirtualKD-Redux - A revival and modernization of VirtualKD (github.com)</a></p></blockquote><p>手动进行引导设置操作比较复杂，所以可以使用开源工具<strong>VirtualKD</strong>进行快速设置，其支持VMware以及Vbox</p><ol><li><p>在VirtualKD目录下target32或target64（对应虚拟机架构）拷贝到虚拟机中执行install进行安装</p></li><li><p>在主机中打开vmmon.exe，设置调试器路径</p></li><li><p>重启虚拟机在引导选择时按<strong>F8</strong>禁用签名校验，如果引导选择界面为windows新版的选择界面（不是传统上下键选择），则在高级设置里进行签名校验禁用</p></li><li><p>VirtualKD会自动打开调试器，按<code>g</code>即可进入系统</p></li></ol>]]></content>
+      
+      
       <categories>
-        <category>C++</category>
+          
+          <category> Windows驱动 </category>
+          
       </categories>
-      <tags>
-        <tag>归档</tag>
-        <tag>C++</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ELF文件格式</title>
-    <url>/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/</url>
-    <content><![CDATA[<h1 id="ELF文件结构"><a href="#ELF文件结构" class="headerlink" title="ELF文件结构"></a>ELF文件结构</h1><p>ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。</p>
-<span id="more"></span>
-
-<p>其内容视图主要有两种</p>
-<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png" class="" title="Link View">
-<p>以链接视图来分析ELF的文件格式</p>
-<ul>
-<li>ELF Header -&gt; 存放ELF文件的整体信息</li>
-<li>Program Header Table -&gt; 存放程序执行时所需要的信息。其实就是段信息</li>
-<li>Section -&gt; 存放程序大部分信息：指令、数据、符号表等等</li>
-<li>Section Header Table -&gt; 存放描述节区的信息</li>
-</ul>
-<h1 id="ELF-Header"><a href="#ELF-Header" class="headerlink" title="ELF Header"></a>ELF Header</h1><p>用于索引ELF全部的信息，其数据结构如下（数据结构可以在/usr/include/elf.h查看）</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* The ELF file header.  This appears at the start of every ELF file.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">char</span>	e_ident[EI_NIDENT];	<span class="comment">/* Magic number and other info */</span></span><br><span class="line">  Elf32_Half	e_type;			<span class="comment">/* Object file type */</span></span><br><span class="line">  Elf32_Half	e_machine;		<span class="comment">/* Architecture */</span></span><br><span class="line">  Elf32_Word	e_version;		<span class="comment">/* Object file version */</span></span><br><span class="line">  Elf32_Addr	e_entry;		<span class="comment">/* Entry point virtual address */</span></span><br><span class="line">  Elf32_Off	e_phoff;		<span class="comment">/* Program header table file offset */</span></span><br><span class="line">  Elf32_Off	e_shoff;		<span class="comment">/* Section header table file offset */</span></span><br><span class="line">  Elf32_Word	e_flags;		<span class="comment">/* Processor-specific flags */</span></span><br><span class="line">  Elf32_Half	e_ehsize;		<span class="comment">/* ELF header size in bytes */</span></span><br><span class="line">  Elf32_Half	e_phentsize;		<span class="comment">/* Program header table entry size */</span></span><br><span class="line">  Elf32_Half	e_phnum;		<span class="comment">/* Program header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shentsize;		<span class="comment">/* Section header table entry size */</span></span><br><span class="line">  Elf32_Half	e_shnum;		<span class="comment">/* Section header table entry count */</span></span><br><span class="line">  Elf32_Half	e_shstrndx;		<span class="comment">/* Section header string table index */</span></span><br><span class="line">&#125; Elf32_Ehdr;</span><br></pre></td></tr></table></figure>
-<p>只了解其中部分含义</p>
-<h2 id="e-ident"><a href="#e-ident" class="headerlink" title="e_ident"></a>e_ident</h2><p>其下标含义如下</p>
-<table>
-<thead>
-<tr>
-<th>宏名称</th>
-<th>下标</th>
-<th>目的</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>EI_MAG0</td>
-<td>0</td>
-<td>文件标识</td>
-</tr>
-<tr>
-<td>EI_MAG0</td>
-<td>1</td>
-<td>文件标识</td>
-</tr>
-<tr>
-<td>EI_MAG0</td>
-<td>2</td>
-<td>文件标识</td>
-</tr>
-<tr>
-<td>EI_MAG0</td>
-<td>3</td>
-<td>文件标识</td>
-</tr>
-<tr>
-<td>EI_CLASS</td>
-<td>4</td>
-<td>文件类</td>
-</tr>
-<tr>
-<td>EI_DATA</td>
-<td>5</td>
-<td>数据编码</td>
-</tr>
-<tr>
-<td>EI_VERSION</td>
-<td>6</td>
-<td>文件版本</td>
-</tr>
-<tr>
-<td>EI_PAD</td>
-<td>7</td>
-<td>补齐字节开始处</td>
-</tr>
-</tbody></table>
-<p>下标0-3称为魔数标识ELF文件<br>下标4<strong>EI_CLASS</strong>定义ELF类型，有以下取值</p>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>值</th>
-<th>意义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>ELFCLASSNONE</td>
-<td>0</td>
-<td>无效类型</td>
-</tr>
-<tr>
-<td>ELFCLASS32</td>
-<td>1</td>
-<td>32 位文件</td>
-</tr>
-<tr>
-<td>ELFCLASS64</td>
-<td>2</td>
-<td>64 位文件</td>
-</tr>
-</tbody></table>
-<p>下标5 <strong>EI_DATA</strong> 定义大小端模式，有以下取值</p>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>值</th>
-<th>意义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>ELFDATANONE</td>
-<td>0</td>
-<td>无效数据编码</td>
-</tr>
-<tr>
-<td>ELFDATA2LSB</td>
-<td>1</td>
-<td>小端</td>
-</tr>
-<tr>
-<td>ELFDATA2MSB</td>
-<td>2</td>
-<td>大端</td>
-</tr>
-</tbody></table>
-<p>下标6 <strong>EI_DATA</strong>  定义ELF头的版本号，与e_version相同<br>下标7 <strong>EI_PAD</strong>  给出了e_ident中未使用字节的开始地址。这些字节被保留并置为 0；处理目标文件的程序应该忽略它们。如果之后这些字节被使用，EI_PAD 的值就会改变。</p>
-<h2 id="e-phoff"><a href="#e-phoff" class="headerlink" title="e_phoff"></a>e_phoff</h2><p>给出程序头部表在文件中的字节偏移（Program Header table OFFset）。如果文件中没有程序头部表，则为 0。</p>
-<h2 id="e-shoff"><a href="#e-shoff" class="headerlink" title="e_shoff"></a>e_shoff</h2><p>给出节头表在文件中的字节偏移（ Section Header table OFFset ）。如果文件中没有节头表，则为 0。</p>
-<h1 id="Program-Header-Table"><a href="#Program-Header-Table" class="headerlink" title="Program Header Table"></a>Program Header Table</h1><p>其类型为Elf32_Phdr结构体数组，ELF  Header中的 e_phentsize 和 e_phnum 指定了该数组每个元素的大小以及元素个数。数据结构如下：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* Program segment header.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	p_type;			<span class="comment">/* Segment type */</span></span><br><span class="line">  Elf32_Off	p_offset;		<span class="comment">/* Segment file offset */</span></span><br><span class="line">  Elf32_Addr	p_vaddr;		<span class="comment">/* Segment virtual address */</span></span><br><span class="line">  Elf32_Addr	p_paddr;		<span class="comment">/* Segment physical address */</span></span><br><span class="line">  Elf32_Word	p_filesz;		<span class="comment">/* Segment size in file */</span></span><br><span class="line">  Elf32_Word	p_memsz;		<span class="comment">/* Segment size in memory */</span></span><br><span class="line">  Elf32_Word	p_flags;		<span class="comment">/* Segment flags */</span></span><br><span class="line">  Elf32_Word	p_align;		<span class="comment">/* Segment alignment */</span></span><br><span class="line">&#125; Elf32_Phdr;</span><br></pre></td></tr></table></figure>
-<p>前面说过其实这个表就是存放段信息的，暂且先了解p_type，p_offset字段</p>
-<h2 id="p-type"><a href="#p-type" class="headerlink" title="p_type"></a>p_type</h2><p>描述段类型，具体取值如下</p>
-<table>
-<thead>
-<tr>
-<th>名字</th>
-<th>取值</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PT_NULL</td>
-<td>0</td>
-<td>表明段未使用，其结构中其他成员都是未定义的。</td>
-</tr>
-<tr>
-<td>PT_LOAD</td>
-<td>1</td>
-<td>此类型段为一个可加载的段，大小由 p_filesz 和 p_memsz 描述。文件中的字节被映射到相应内存段开始处。如果 p_memsz 大于 p_filesz，“剩余” 的字节都要被置为 0。p_filesz 不能大于 p_memsz。可加载的段在程序头部中按照 p_vaddr 的升序排列。</td>
-</tr>
-<tr>
-<td>PT_DYNAMIC</td>
-<td>2</td>
-<td>此类型段给出动态链接信息。</td>
-</tr>
-<tr>
-<td>PT_INTERP</td>
-<td>3</td>
-<td>此类型段给出了一个以 NULL 结尾的字符串的位置和长度，该字符串将被当作解释器调用。这种段类型仅对可执行文件有意义（也可能出现在共享目标文件中）。此外，这种段在一个文件中最多出现一次。而且这种类型的段存在的话，它必须在所有可加载段项的前面。</td>
-</tr>
-<tr>
-<td>PT_NOTE</td>
-<td>4</td>
-<td>此类型段给出附加信息的位置和大小。</td>
-</tr>
-<tr>
-<td>PT_SHLIB</td>
-<td>5</td>
-<td>该段类型被保留，不过语义未指定。而且，包含这种类型的段的程序不符合 ABI 标准。</td>
-</tr>
-<tr>
-<td>PT_PHDR</td>
-<td>6</td>
-<td>该段类型的数组元素如果存在的话，则给出了程序头部表自身的大小和位置，既包括在文件中也包括在内存中的信息。此类型的段在文件中最多出现一次。此外，只有程序头部表是程序的内存映像的一部分时，它才会出现。如果此类型段存在，则必须在所有可加载段项目的前面。</td>
-</tr>
-<tr>
-<td>PT_LOPROC~PT_HIPROC</td>
-<td>0x70000000 ~0x7fffffff</td>
-<td>此范围的类型保留给处理器专用语义。</td>
-</tr>
-</tbody></table>
-<h2 id="p-offset"><a href="#p-offset" class="headerlink" title="p_offset"></a>p_offset</h2><p>存放从文件开始到该段开头的第一个字节的偏移</p>
-<h2 id="关于段和节的关系"><a href="#关于段和节的关系" class="headerlink" title="关于段和节的关系"></a>关于段和节的关系</h2><p>简单来说段就是节的集合，段主要在程序装载时起作用。</p>
-<img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/text_segment.png" class="" title="text segment">
-
-
-
-<ul>
-<li>有执行功能的代码指令流和只读属性的数据节组合成只读代码段。</li>
-<li>可修改的数据变量，和动态调用的相对地址寻址入口组合成读写数据段。</li>
-<li>不同的段来说可能会有所重合，即不同的段包含相同的节</li>
-</ul>
-<h1 id="Section-Header-Table"><a href="#Section-Header-Table" class="headerlink" title="Section Header Table"></a>Section Header Table</h1><p>其类型为ELF32_Shdr结构体数组，存放节信息。其数据结构如下</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* Section header.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word	sh_name;		<span class="comment">/* Section name (string tbl index) */</span></span><br><span class="line">  Elf32_Word	sh_type;		<span class="comment">/* Section type */</span></span><br><span class="line">  Elf32_Word	sh_flags;		<span class="comment">/* Section flags */</span></span><br><span class="line">  Elf32_Addr	sh_addr;		<span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf32_Off	sh_offset;		<span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf32_Word	sh_size;		<span class="comment">/* Section size in bytes */</span></span><br><span class="line">  Elf32_Word	sh_link;		<span class="comment">/* Link to another section */</span></span><br><span class="line">  Elf32_Word	sh_info;		<span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf32_Word	sh_addralign;		<span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf32_Word	sh_entsize;		<span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf32_Shdr;</span><br></pre></td></tr></table></figure>
-<p>还是先了解部分字段</p>
-<h2 id="sh-type"><a href="#sh-type" class="headerlink" title="sh_type"></a>sh_type</h2><table>
-<thead>
-<tr>
-<th>名称</th>
-<th>取值</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>SHT_NULL</td>
-<td>0</td>
-<td>该类型节区是非活动的，这种类型的节头中的其它成员取值无意义。</td>
-</tr>
-<tr>
-<td>SHT_PROGBITS</td>
-<td>1</td>
-<td>该类型节区包含程序定义的信息，它的格式和含义都由程序来决定。</td>
-</tr>
-<tr>
-<td>SHT_SYMTAB</td>
-<td>2</td>
-<td>该类型节区包含一个符号表（SYMbol TABle）。目前目标文件对每种类型的</td>
-</tr>
-<tr>
-<td>SHT_STRTAB</td>
-<td>3</td>
-<td>该类型节区包含字符串表（ STRing TABle ）。</td>
-</tr>
-<tr>
-<td>SHT_RELA</td>
-<td>4</td>
-<td>该类型节区包含显式指定位数的重定位项（ RELocation entry with Addends ），例如，32 位目标文件中的 Elf32_Rela 类型。此外，目标文件可能拥有多个重定位节区。</td>
-</tr>
-<tr>
-<td>SHT_HASH</td>
-<td>5</td>
-<td>该类型节区包含符号哈希表（ HASH table ）。</td>
-</tr>
-<tr>
-<td>SHT_DYNAMIC</td>
-<td>6</td>
-<td>该类型节区包含动态链接的信息（ DYNAMIC linking ）。</td>
-</tr>
-<tr>
-<td>SHT_NOTE</td>
-<td>7</td>
-<td>该类型节区包含以某种方式标记文件的信息（NOTE）。</td>
-</tr>
-<tr>
-<td>SHT_NOBITS</td>
-<td>8</td>
-<td>该类型节区不占用文件的空间，其它方面和 SHT_PROGBITS 相似。尽管该类型节区不包含任何字节，其对应的节头成员 sh_offset 中还是会包含概念性的文件偏移。</td>
-</tr>
-<tr>
-<td>SHT_REL</td>
-<td>9</td>
-<td>该类型节区包含重定位表项（RELocation entry without Addends），不过并没有指定位数。例如，32 位目标文件中的 Elf32_rel 类型。目标文件中可以拥有多个重定位节区。</td>
-</tr>
-<tr>
-<td>SHT_SHLIB</td>
-<td>10</td>
-<td>该类型此节区被保留，不过其语义尚未被定义。</td>
-</tr>
-<tr>
-<td>SHT_DYNSYM</td>
-<td>11</td>
-<td>作为一个完整的符号表，它可能包含很多对动态链接而言不必 要的符号。因此，目标文件也可以包含一个 SHT_DYNSYM 节区，其中保存动态链接符号的一个最小集合，以节省空间。</td>
-</tr>
-<tr>
-<td>SHT_LOPROC</td>
-<td>0X70000000</td>
-<td>此值指定保留给处理器专用语义的下界（ LOw PROCessor-specific semantics ）。</td>
-</tr>
-<tr>
-<td>SHT_HIPROC</td>
-<td>0X7FFFFFFF</td>
-<td>此值指定保留给处理器专用语义的上界（ HIgh PROCessor-specific semantics ）。</td>
-</tr>
-<tr>
-<td>SHT_LOUSER</td>
-<td>0X80000000</td>
-<td>此值指定保留给应用程序的索引下界。</td>
-</tr>
-<tr>
-<td>SHT_HIUSER</td>
-<td>0X8FFFFFFF</td>
-<td>此值指定保留给应用程序的索引上界。</td>
-</tr>
-</tbody></table>
-<h1 id="Section"><a href="#Section" class="headerlink" title="Section"></a>Section</h1><p>节区包含目标文件中除了 ELF 头部、程序头部表、节区头部表的所有信息。节区满足以下条件：</p>
-<ul>
-<li>每个节区都有对应的节头来描述它。但是反过来，节区头部并不一定会对应着一个节区。</li>
-<li>每个节区在目标文件中是连续的，但是大小可能为 0。</li>
-<li>任意两个节区不能重叠，即一个字节不能同时存在于两个节区中。</li>
-<li>目标文件中可能会有闲置空间（inactive space），各种头和节不一定会覆盖到目标文件中的所有字节，闲置区域的内容未指定。</li>
-</ul>
-<p>先了解一些特殊节（前边带.的节是系统保留的）</p>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>类型</th>
-<th>属性</th>
-<th>含义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>.comment</td>
-<td>SHT_PROGBITS</td>
-<td></td>
-<td>包含版本控制信息。</td>
-</tr>
-<tr>
-<td>.debug</td>
-<td>SHT_PROGBITS</td>
-<td></td>
-<td>此节区包含用于符号调试的信息。</td>
-</tr>
-<tr>
-<td>.dynamic</td>
-<td>SHT_DYNAMIC</td>
-<td>SHF_ALLOC SHF_WRITE</td>
-<td>此节区包含动态链接信息。SHF_WRITE 位设置与否是否被设置取决于具体的处理器。</td>
-</tr>
-<tr>
-<td>.dynstr</td>
-<td>SHT_STRTAB</td>
-<td>SHF_ALLOC</td>
-<td>此节区包含用于动态链接的字符串，大多数 情况下这些字符串代表了与符号表项相关的名称。</td>
-</tr>
-<tr>
-<td>.dynsym</td>
-<td>SHT_DYNSYM</td>
-<td>SHF_ALLOC</td>
-<td>此节区包含动态链接符号表。</td>
-</tr>
-<tr>
-<td>.got</td>
-<td>SHT_PROGBITS</td>
-<td></td>
-<td>此节区包含全局偏移表。</td>
-</tr>
-<tr>
-<td>.line</td>
-<td>SHT_PROGBITS</td>
-<td></td>
-<td>此节区包含符号调试的行号信息，描述了源程序与机器指令之间的对应关系，其内容是未定义的。</td>
-</tr>
-<tr>
-<td>.plt</td>
-<td>SHT_PROGBITS</td>
-<td></td>
-<td>此节区包含过程链接表（procedure linkage table）。</td>
-</tr>
-<tr>
-<td>.relname</td>
-<td>SHT_REL</td>
-<td></td>
-<td>这些节区中包含重定位信息。如果文件中包含可加载的段，段中有重定位内容，节区的属性将包含 SHF_ALLOC 位，否则该位置 0。传统上 name 根据重定位所适用的节区给定。例如 .text 节区的重定位节区名字将是：.rel.text 或者 .rela.text。</td>
-</tr>
-<tr>
-<td>.relaname</td>
-<td>SHT_RELA</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>.shstrtab</td>
-<td>SHT_STRTAB</td>
-<td></td>
-<td>此节区包含节区名称。</td>
-</tr>
-</tbody></table>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 调试 </tag>
+            
+            <tag> Windows驱动 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>进程通信几种方式</title>
+      <link href="/2020/12/30/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/"/>
+      <url>/2020/12/30/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/</url>
+      
+        <content type="html"><![CDATA[<p>两个进程间经常需要进行数据交换和共享，列出几种方式便于在编程中进行应用。</p><blockquote><p><a href="https://blog.csdn.net/zhongguoren666/article/details/8234098">https://blog.csdn.net/zhongguoren666/article/details/8234098</a></p></blockquote><h1 id="文件映射"><a href="#文件映射" class="headerlink" title="文件映射"></a>文件映射</h1><p>　　文件映射(Memory-Mapped Files)能使进程把文件内容当作进程地址区间一块内存那样来对待。因此，进程不必使用文件I&#x2F;O操作，只需简单的指针操作就可读取和修改文件的内容。<br>　　Win32 API允许多个进程访问同一文件映射对象，各个进程在它自己的地址空间里接收内存的指针。通过使用这些指针，不同进程就可以读或修改文件的内容，实现了对文件中数据的共享。<br>　　应用程序有三种方法来使多个进程共享一个文件映射对象。<br>　　(1)继承：第一个进程建立文件映射对象，它的子进程继承该对象的句柄。<br>　　(2)命名文件映射：第一个进程在建立文件映射对象时可以给该对象指定一个名字(可与文件名不同)。第二个进程可通过这个名字打开此文件映射对象。另外，第一个进程也可以通过一些其它IPC机制(有名管道、邮件槽等)把名字传给第二个进程。<br>　　(3)句柄复制：第一个进程建立文件映射对象，然后通过其它IPC机制(有名管道、邮件槽等)把对象句柄传递给第二个进程。第二个进程复制该句柄就取得对该文件映射对象的访问权限。<br>　　文件映射是在多个进程间共享数据的非常有效方法，有较好的安全性。但文件映射只能用于本地机器的进程之间，不能用于网络中，而开发者还必须控制进程间的同步。</p><h1 id="共享内存"><a href="#共享内存" class="headerlink" title="共享内存"></a>共享内存</h1><p>　　Win32 API中共享内存(Shared Memory)实际就是文件映射的一种特殊情况。进程在创建文件映射对象时用0xFFFFFFFF来代替文件句柄(HANDLE)，就表示了对应的文件映射对象是从操作系统页面文件访问内存，其它进程打开该文件映射对象就可以访问该内存块。由于共享内存是用文件映射实现的，所以它也有较好的安全性，也只能运行于同一计算机上的进程之间。</p><h1 id="匿名管道"><a href="#匿名管道" class="headerlink" title="匿名管道"></a>匿名管道</h1><p>　　管道(Pipe)是一种具有两个端点的通信通道：有一端句柄的进程可以和有另一端句柄的进程通信。管道可以是单向－一端是只读的，另一端点是只写的；也可以是双向的一管道的两端点既可读也可写。<br>　　匿名管道(Anonymous Pipe)是 在父进程和子进程之间，或同一父进程的两个子进程之间传输数据的无名字的单向管道。通常由父进程创建管道，然后由要通信的子进程继承通道的读端点句柄或写 端点句柄，然后实现通信。父进程还可以建立两个或更多个继承匿名管道读和写句柄的子进程。这些子进程可以使用管道直接通信，不需要通过父进程。<br>　　匿名管道是单机上实现子进程标准I&#x2F;O重定向的有效方法，它不能在网上使用，也不能用于两个不相关的进程之间。</p><h1 id="命名管道"><a href="#命名管道" class="headerlink" title="命名管道"></a>命名管道</h1><p>　　命名管道(Named Pipe)是服务器进程和一个或多个客户进程之间通信的单向或双向管道。不同于匿名管道的是命名管道可以在不相关的进程之间和不同计算机之间使用，服务器建立命名管道时给它指定一个名字，任何进程都可以通过该名字打开管道的另一端，根据给定的权限和服务器进程通信。<br>　　命名管道提供了相对简单的编程接口，使通过网络传输数据并不比同一计算机上两进程之间通信更困难，不过如果要同时和多个进程通信它就力不从心了。</p><h1 id="邮件槽"><a href="#邮件槽" class="headerlink" title="邮件槽"></a>邮件槽</h1><p>　　邮件槽(Mailslots)提 供进程间单向通信能力，任何进程都能建立邮件槽成为邮件槽服务器。其它进程，称为邮件槽客户，可以通过邮件槽的名字给邮件槽服务器进程发送消息。进来的消 息一直放在邮件槽中，直到服务器进程读取它为止。一个进程既可以是邮件槽服务器也可以是邮件槽客户，因此可建立多个邮件槽实现进程间的双向通信。<br>　　通过邮件槽可以给本地计算机上的邮件槽、其它计算机上的邮件槽或指定网络区域中所有计算机上有同样名字的邮件槽发送消息。广播通信的消息长度不能超过400字节，非广播消息的长度则受邮件槽服务器指定的最大消息长度的限制。<br>　　邮件槽与命名管道相似，不过它传输数据是通过不可靠的数据报(如TCP&#x2F;IP协议中的UDP包)完成的，一旦网络发生错误则无法保证消息正确地接收，而命名管道传输数据则是建立在可靠连接基础上的。不过邮件槽有简化的编程接口和给指定网络区域内的所有计算机广播消息的能力，所以邮件槽不失为应用程序发送和接收消息的另一种选择。</p><h1 id="剪贴板"><a href="#剪贴板" class="headerlink" title="剪贴板"></a>剪贴板</h1><p>　　剪贴板(Clipped Board)实质是Win32 API中一组用来传输数据的函数和消息，为Windows应用程序之间进行数据共享提供了一个中介，Windows已建立的剪切(复制)－粘贴的机制为不同应用程序之间共享不同格式数据提供了一条捷径。当用户在应用程序中执行剪切或复制操作时，应用程序把选取的数据用一种或多种格式放在剪贴板上。然后任何其它应用程序都可以从剪贴板上拾取数据，从给定格式中选择适合自己的格式。<br>　　剪贴板是一个非常松散的交换媒介，可以支持任何数据格式，每一格式由一无符号整数标识，对标准(预定义)剪贴板格式，该值是Win32 API定义的常量；对非标准格式可以使用Register Clipboard Format函数注册为新的剪贴板格式。利用剪贴板进行交换的数据只需在数据格式上一致或都可以转化为某种格式就行。但剪贴板只能在基于Windows的程序中使用，不能在网络上使用。</p><h1 id="动态数据交换"><a href="#动态数据交换" class="headerlink" title="动态数据交换"></a>动态数据交换</h1><p>　　动态数据交换(DDE)是使用共享内存在应用程序之间进行数据交换的一种进程间通信形式。应用程序可以使用DDE进行一次性数据传输，也可以当出现新数据时，通过发送更新值在应用程序间动态交换数据。<br>　　DDE和剪贴板一样既支持标准数据格式(如文本、位图等)，又可以支持自己定义的数据格式。但它们的数据传输机制却不同，一个明显区别是剪贴板操作几乎总是用作对用户指定操作的一次性应答－如从菜单中选择Paste命令。尽管DDE也可以由用户启动，但它继续发挥作用一般不必用户进一步干预。DDE有三种数据交换方式：<br>　　(1) 冷链：数据交换是一次性数据传输，与剪贴板相同。<br>　　(2) 温链：当数据交换时服务器通知客户，然后客户必须请求新的数据。<br>　　(3) 热链：当数据交换时服务器自动给客户发送数据。<br>　　DDE交换可以发生在单机或网络中不同计算机的应用程序之间。开发者还可以定义定制的DDE数据格式进行应用程序之间特别目的IPC，它们有更紧密耦合的通信要求。大多数基于Windows的应用程序都支持DDE。</p><h1 id="对象连接与嵌入"><a href="#对象连接与嵌入" class="headerlink" title="对象连接与嵌入"></a>对象连接与嵌入</h1><p>　　应用程序利用对象连接与嵌入(OLE)技术管理复合文档(由多种数据格式组成的文档)，OLE提供使某应用程序更容易调用其它应用程序进行数据编辑的服务。例如，OLE支持的字处理器可以嵌套电子表格，当用户要编辑电子表格时OLE库可自动启动电子表格编辑器。当用户退出电子表格编辑器时，该表格已在原始字处理器文档中得到更新。在这里电子表格编辑器变成了字处理器的扩展，而如果使用DDE，用户要显式地启动电子表格编辑器。<br>　　同DDE技术相同，大多数基于Windows的应用程序都支持OLE技术。</p><h1 id="动态连接库"><a href="#动态连接库" class="headerlink" title="动态连接库"></a>动态连接库</h1><p>　　Win32动态连接库(DLL)中的全局数据可以被调用DLL的所有进程共享，这就又给进程间通信开辟了一条新的途径，当然访问时要注意同步问题。<br>　　虽然可以通过DLL进行进程间数据共享，但从数据安全的角度考虑，我们并不提倡这种方法，使用带有访问权限控制的共享内存的方法更好一些。</p><h1 id="远程过程调用"><a href="#远程过程调用" class="headerlink" title="远程过程调用"></a>远程过程调用</h1><p>　　Win32 API提供的远程过程调用(RPC)使应用程序可以使用远程调用函数，这使在网络上用RPC进行进程通信就像函数调用那样简单。RPC既可以在单机不同进程间使用也可以在网络中使用。<br>　　由于Win32 API提供的RPC服从OSF-DCE(Open Software Foundation Distributed Computing Environment)标准。所以通过Win32 API编写的RPC应用程序能与其它操作系统上支持DEC的RPC应用程序通信。使用RPC开发者可以建立高性能、紧密耦合的分布式应用程序。</p><h1 id="NetBios-函数"><a href="#NetBios-函数" class="headerlink" title="NetBios 函数"></a>NetBios 函数</h1><p>　　Win32 API提供NetBios函数用于处理低级网络控制，这主要是为IBM NetBios系统编写与Windows的接口。除非那些有特殊低级网络功能要求的应用程序，其它应用程序最好不要使用NetBios函数来进行进程间通信。</p><h1 id="Sockets"><a href="#Sockets" class="headerlink" title="Sockets"></a>Sockets</h1><p>　　Windows Sockets规范是以U.C.Berkeley大学BSD UNIX中流行的Socket接口为范例定义的一套Windows下的网络编程接口。除了Berkeley Socket原有的库函数以外，还扩展了一组针对Windows的函数，使程序员可以充分利用Windows的消息机制进行编程。<br>　　现在通过Sockets实现进程通信的网络应用越来越多，这主要的原因是Sockets的跨平台性要比其它IPC机制好得多，另外WinSock 2.0不仅支持TCP&#x2F;IP协议，而且还支持其它协议(如IPX)。Sockets的唯一缺点是它支持的是底层通信操作，这使得在单机的进程间进行简单数据传递不太方便，这时使用下面将介绍的WM_COPYDATA消息将更合适些。</p><h1 id="WM-COPYDATA-消息"><a href="#WM-COPYDATA-消息" class="headerlink" title="WM_COPYDATA 消息"></a>WM_COPYDATA 消息</h1><p>　　WM_COPYDATA是一种非常强大却鲜为人知的消息。当一个应用向另一个应用传送数据时，发送方只需使用调用SendMessage函数，参数是目的窗口的句柄、传递数据的起始地址、WM_COPYDATA消息。接收方只需像处理其它消息那样处理WM_COPY DATA消息，这样收发双方就实现了数据共享。<br>　　WM_COPYDATA是一种非常简单的方法，它在底层实际上是通过文件映射来实现的。它的缺点是灵活性不高，并且它只能用于Windows平台的单机环境下。</p>]]></content>
+      
+      
       <categories>
-        <category>PWN</category>
+          
+          <category> Code </category>
+          
       </categories>
-      <tags>
-        <tag>PWN</tag>
-        <tag>ELF</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>C++走过的路-深入理解c语言&#39;\0&#39;,&#39;0&#39;,&quot;0&quot; ,0之间的区别</title>
-    <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3c%E8%AF%AD%E8%A8%800%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/</url>
-    <content><![CDATA[<h1 id="‘-0’和’0’的区别"><a href="#‘-0’和’0’的区别" class="headerlink" title="‘\0’和’0’的区别"></a>‘\0’和’0’的区别</h1><p>有一个共同点就是它们都是字符，在c语言中，字符是按其所对应的ASCII码来存储的，一个字符占一个字节。请翻开你的ASCII字符集表吧，一般在你的C语言教材的附录上，没有的话网上查查哦。请看第一个ASCII码，对是0，对应的字符是（Null），其实就是’\0’，即空字符。判断一个字符串是否结束的标志就是看是否遇到’\0’，如果遇到’\0’，则表示字符串结束。而字符’0’对应的ASCII码是48，48对应的十六进制数就是0x30，通常我们在编程的时候，用字符转化为数字的时候经常要用到，比如要将’8’转换为数字8，在语句中这样写就可以了，<code>&#39;8&#39;-&#39;0&#39;</code>。这里的8就是数字。</p>
-<h1 id="‘0’和0的区别"><a href="#‘0’和0的区别" class="headerlink" title="‘0’和0的区别"></a>‘0’和0的区别</h1><p>前者是字符常量，后者是整形常量，它们的含义和在计算机中的存储方式截然不同。但是字符常量可以像整数一样在程序中参与相关运算。例如：<code>&#39;8&#39;-3</code>。</p>
-<h1 id="“0”和’0’的区别"><a href="#“0”和’0’的区别" class="headerlink" title="“0”和’0’的区别"></a>“0”和’0’的区别</h1><p>首先”0”是字符串常量，字符串常量是由一对双引号括起的字符序列。例如：”CHINA”,”I LOVE YOU”,”123”等都是合法的字符串常量。’0’是字符常量，字符串常量和字符常量是不同的量。</p>
-<ol>
-<li>字符常量由单引号括起来；字符串常量由双引号括起来。</li>
-<li>字符常量只能是单个字符；字符串常量则可以含一个或多个字符。</li>
-</ol>
-<p>这里先介绍表达上的主要区别，在运用中还有存储空间的不同以及赋值方式的不同等等。</p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 编程 </tag>
+            
+            <tag> Windows </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>栈溢出</title>
+      <link href="/2019/09/05/%E6%A0%88%E6%BA%A2%E5%87%BA/"/>
+      <url>/2019/09/05/%E6%A0%88%E6%BA%A2%E5%87%BA/</url>
+      
+        <content type="html"><![CDATA[<h1 id="ret2syscall"><a href="#ret2syscall" class="headerlink" title="ret2syscall"></a>ret2syscall</h1><p>系统调用三种方式int 80，syscenter，syscall<br>int 80，syscenter传参方式eax，ebx，ecx，edx<br>syscall传参方式rdi,rsi,rdx,r10,r9,r8</p>]]></content>
+      
+      
       <categories>
-        <category>C++</category>
+          
+          <category> PWN </category>
+          
       </categories>
-      <tags>
-        <tag>归档</tag>
-        <tag>C++</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PWN学习之路 - 字符串格式化漏洞总结</title>
-    <url>/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/</url>
-    <content><![CDATA[<h2 id="一、函数原型"><a href="#一、函数原型" class="headerlink" title="一、函数原型"></a>一、函数原型</h2><p><em><em>int printf(const char</em> format,…)</em>*<br>常规用法</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br></pre></td></tr></table></figure>
-<p>另外一种用法</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(str)</span><br></pre></td></tr></table></figure>
-<p>第一种用法没有错误，但是在第二种方法中没有规定<strong>format</strong>参数，用户便可以通过构造str来实现内存的任意读写。<br>printf函数的格式化字符串常见的有</p>
-<blockquote>
-<p>%d，%f，%c，%s，%x（16进制数，没有0x），%p（16进制数，有0x）等。<br>%n ，它的功能是将%n之前打印出来的字符个数，赋值给一个变量。<br>%hn，%hhn，%lln，分别为写入目标空间2字节，1字节，8字节。</p>
-</blockquote>
-<p>注意是对应参数（这个参数是指针）的对应的地址开始起几个字节。不要觉得%lln，取的是8个字节的指针，%n取的就是4个字节的指针，取的是多少字节的指针只跟程序的位数有关，如果是32位的程序，%n取的就是4字节指针，64位取的就是8字节指针，这是因为不同位数的程序，每个参数对应的字节数是不同的。</p>
-<h2 id="二、原理分析"><a href="#二、原理分析" class="headerlink" title="二、原理分析"></a>二、原理分析</h2><p>以一段代码为例</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#include&lt;stdio.h&gt;</span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">  char a[100];</span><br><span class="line">  scanf(&quot;%s&quot;,a);</span><br><span class="line">  printf(a);</span><br><span class="line">  return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/1.png" class="" title="运行结果">
-<p>第七个参数就是AAAA在栈中的位置</p>
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/before.png" class="" title="输入前">
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/behind.png" class="" title="输入后">
-<p><em>PS：<br>linux下直接读取第七个参数的方法:<br><strong>%&lt; number &gt;$x</strong> 是直接读取第number个位置的参数，同样可以用在%n，%d等等。<br>但是需要注意64位程序，前6个参数是存在寄存器中的，从第7个参数开始才会出现在栈中，所以栈中从格式化串开始的第一个，应该是</em><em>%7$n**。</em></p>
-<h2 id="三、读取内存"><a href="#三、读取内存" class="headerlink" title="三、读取内存"></a>三、读取内存</h2><p>输入的字符串的前4个字节如果是一个有效的字符串的首地址，就可以用%s将其打印出来，做到任意内存读取。如果不是有效的字符串，会出现段错误。</p>
-<h2 id="四、修改内存"><a href="#四、修改内存" class="headerlink" title="四、修改内存"></a>四、修改内存</h2><blockquote>
-<p>局部变量保存在栈中</p>
-</blockquote>
-<p>前提需要关闭PIE保护，不然局部变量的地址是随机的。<br>例如前四个字节地址在0xABCDEFGH<br>构造字符串如下</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">`printf &quot;\xGH\xEF\xCD\xAB&quot;`%08x%08x%08x%08x%08x%08x%08n</span><br><span class="line">//`printf &quot;\xGH\xEF\xCD\xAB&quot;`%7$n</span><br></pre></td></tr></table></figure>
-<h2 id="五、实战"><a href="#五、实战" class="headerlink" title="五、实战"></a>五、实战</h2><p><strong>CGfsb</strong><br>在IDA中源码如下</p>
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/ori.png" class="" title="源码">
-<p>确定偏移量</p>
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/offset.png" class="" title="确定偏移量">
-<p>payload</p>
-<img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/payload.png" class="" title="payload">
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> PWN </tag>
+            
+            <tag> 栈 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>record_1</title>
+      <link href="/2019/09/01/record-1/"/>
+      <url>/2019/09/01/record-1/</url>
+      
+        <content type="html"><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="坏人走开." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">  <script id="hbeData" type="hbeData" data-hmacdigest="c215117672fadbe50f585261aa345213677ad2a78964d735dd44b26442556310">ea01187b15b1e247184f97b08f75debb7271ac095bcdff3f18add65ebb9267c470752735b932f8ea5665c80780a66b66dc97b33ae9264f2690489dffe7452029b85f4b62ab2e38ee5d1b8b278a8ebcf8c3762d86d6d811db2df160dee731a77f83bea675e68e8fd6e2b755e33ba84b83ed76d17a737c76dc6b283fbccafc0f950ae8550600b1d80c183206d8857c1c8b3bfa600d7f73b4279e09228f4426020320055eb0d13234d8f1ad8ab9404d488f1b2bb2ea77e97d83774c6509f42bf37e5d7432d0776278aaf7a56c66640426e621a44bec4717ac37a6d799a2f47be27651cb986899e1cd5d64cadfc2d501c2b0957b17a967d38a76185d27c3bdd1b5777a95a7983d4eaa08f98335a1c0c00658bc59c7f021bf2a7b60f6d1cc33ee88196031a1509c217277e9308e4185eb8be47499062f8f49f36c0b0525c46f212b29df2c31f37acc779ab9dc16a5f7f62af3954e51770e124eecfe778641f683100a990e0d0272aca7b9fc13b7a8577f6cc7da3d8021ad6f5343cfbd3125791b328e3cfc8ca9796535f9dd663dc267130420f3588dbfbde6ba05472d82f604018e1b0401ac084a0c26ce67735f49a1505625fc735ec88b339867d2d222516e112e2a5d90a829330747276f7ec707ec9d2375048f0ccbb54b43f3c8cab5a2f1bc8361a93c88dfb52073ceea334c49ecf6cb15fb8d711149b908ec98fd0e04fe70ff4ba743d131912563b2e8ea0af636c51d6473b2b2101281ab7fc1850ff8436f696c4a538f900feefc1b6021ff8b916b34fd86e73dee127c897c744bc913f053a3e15cf91524c2427492499e12a330c2d40fd790fa9c391da90e6938fe855b5312749156c8692fc8730f8de31b5a394c68a77c30dc6d778cfbd20b881643a71ac9e46bfe0e840efe6c032dd337162e03298dacde58c07f786704a693cf0c4ffe206aa3a624db91ee0ec460c71498a61b7a51270caf82716bd6f5cc70f84c4f9bf45ef7e8af6cd0819cb733b5b0c06eed9ab03b1729fd878b1f77d5574960ef24dd9f702669db01df9b3a73dbbae97be117b10d2ee988cb3fe250269dae790c5c52ebc9177c2d8b84e37ca26ce47c73f20d312c577fcace852910780c76c36fbd83f3c8a1f88aac4d9fe0cec85f4d921625911372438a502325baf979ec6932b04fde4622f33eebed966a520fb88dd1476a8f8dfe86a4d0c602c2cf5bf5458311edf24bf599133e74551da5566da221571124ddd13225fddc066bebdef3b0526bf45ba3e61bb639927f636bd16f2cec06d4648e26bde7dc53123d3ed0a240679df529b2f61c85897cbcda1a096bb76974d359172f2beb256e8ba632c00e858e43c205c234c0ca542d1a50c7f89014f5c4e13489583a46cdac1572796cfc43fa5bbf1a8897a60095bb54cd2b173167d2f741c87c31e46c18366e0c6b006cc44a64948ea5889d340aabdf76c4f3ceb02c5c2d542359f03a7523c93690077b28efed9657d4a879ca187d7fbdf9699879b90568ebe32bd80a7af873f578e736bd3d8fa2cc420f3c491230d49982c77497664f121be0764e51bd10e15616118bf9b3ddac747691e3c0de97b9f78de0204673b600b5bacee0e890af5f7619fc087c6acdf199ea10f8c16a5b317fae7b90abf81f826b595b720006585a1ba98e1c19f65bcfeb50c643ab239e81751e96744b87dbbc003f761047caa993a6584ea0a2c7e1aea63711e82041a3a4f44819c0cedc7e5c40699001a667244c396190f6a180e1747cb83285021422065ca624148844aabe4e4d6acb5a7769cdefb87d183a758e3de93bb618604c01548da0e1b38afb139385d5b8e6446ccfff1e8fce9f32cfdbc04a115f08c191afbd4cbcc4e5fab7c5390277887a68636352f4d07e0d1910fdd04ace177d8354edccf317ee3b2af3cb527cfd29d5de5d877d2a4040c85ec09eaa56dd27c7845fccdbb6276480c8d8c354dfb6dc2e30b805450088168f57bcd1fdf7a8e85568a3ae4cc2905167913cd836a0238a253f00aa3e842d4deed9ca1062b8384dcbc2182316b98f56024ee4ac9af80428754809f29c0f2085b852c997b5258c95fc8b4ff68510ed9d594536a4ac860b2aded0c39e33d129cf2c1ac9d2eb35e435f5f9495f3a9092c721be8be7b4dd816d79923db7d1bb925a4e31228bf5295cdb05c23bcb51530710cabaa737fd43416d42d0b8003a1a9c4dd2f80c819b49dc7b983422499d09204639aea38c8b45eda8023865f3c45125a6e68e9492b4237d68a3d4ed6bf52c531fae4b3ee1375485ede9feb78952ce4d3c6e7970c31378f622769d5e1f4c22ca646c3fcb067fbe7b2596a6cf4ecf8d6f0c0822f34088e9d69d1667cc73768931d0f017234fa7123f0aa001c2f49f331dc97cc05dfbd908ef18b015a3615e88cb0d01e277902ee5b0bf8ae91f859fe2ac4bfd947852bcbcf897327871b4c209067229552630f1fe0f8eb304174a72c919cd85a5588c8c200bc0aa61f3d1f6b8e93cfe8a5490ff4aa9d7386ac5009ad361ea4570b2ff484073f65de1c9e21553a6ec3ebc8563de604cfcb8a2e70c61208eb8f28e06d073b84dd1fd6e383f59d7c7b184cfe25ea7cc32b77220958c7c1276f66ca32e9d3a2ba56ae73c7cee497722a322ad5be99cb77ddbdac80622fd8fb76e853196df2422bbe0f785d1a5a85421fa65028ed3ae2cc79d7e7d9fbbda5c444d866ff1fd4960f25d524ffa809d678d2d0fb5c8f9884e67dd1ed04367e5e2b85c21c74c0dfd6c54bff389613c4b21b391a1df3d23c586c180db4e20ce2441981479c311478a0832ea3876cf93da7b7420e9a2bb928348d7bd49c066521611cd4dedf57a44ad84780469ff55d52a51cbfaf8426d6ff4bfc2b167ebcf4b342481fe3807fdb49c101507a3b1a08a90a22c3410eecca58725cb5aca81255ef5b4dac89cba640bbca81cb15ed01ce8b9df64125cb07d2ecadc35cc3c799d7032b73c9a258aeb1b2bb0e0e0d53c6fdf582e00281667bc7292c511bd1bccb1545f90fc0edf28e364eb04d6fe2fad2628bd91c547b352340e5c19e4ea48a4b50968b3c39c4bc0f293e1473979ecc475f29e14dd86b937587fa2babd2f79f04f4ad340e67aad830a67305d698df1e4862875391c7a191891f8c46c52339be1255c0535d14a913011145429a0524e95fcd5aaa514810917e64af68f88152eeac9f8e832c152b61cac2b2ae05a32e84e203ab6ca852a6a2aa9de2f1b9180442dd7c86355d478ee07f0720c0b0b9eb4f624f6a6af810d544e211597d24473fdba23af06d288572c307b488031d6ede15c9bbcbf35de1ec00c655986f43777f24c3c78af0dc9f3a276c906262d96ee4ff240fd49f49be8ec4c8203d96cc3ab2ff05ae80f1fea324f6722a6384859f544e6140d9b8592f24aca0429f0b15d4c99cb77b995421718ead32c4b5fb0d45297682af580493abc1d6cd8b6c40e8fc94e9213f09e68ccb139779c669aad75cdf67c65942f32d8f6c6a71dc2bf360c0cd19b8d8f395bab852851cecf75f80b983305fe61d5d97f583141a5f5072d1fcca7e10fa6bb630666c235a8600e4edbe2cd0cbd817359aaefea1c92de25e94a996dac0b6a179ea87f5537ec6e5a5719113cf5fe6f754f00b5c2180d0064ee29928986a4c497a963fef97e6d83d79d4734c2e303dea35423bbeb44b75a7fa54156e723d0607d577de9231aac058f1b22655d38ce90dc4ad248656c5f032915a7cfaef309989c23fb9fd3d4ac3f9a5db5e52a54eb4a0572f3a85777a07858d6e8adf85c417c297bc21a8b42f4cdbc4cae6f37fcd28dc92faf4086c31e9c81f94229d400be2af0a3c9420c34e7d42efca04b580e2e2914823fcf974d4776f602eab397f9f012dd79cd9c9d1272d408c778c4ad97fd3f7ca7d2f9085832ff6f194f1867c42d6db487d8629ff8d70dcdcfd38ebfd4e1b52a5058f4f91f33da18396aa332d70c397a6c33455768b5e1b72d4fdaebc8f9abd1bc168d8fb6bea7a437</script>  <div class="hbe hbe-content">    <div class="hbe hbe-input hbe-input-xray">      <input class="hbe hbe-input-field hbe-input-field-xray" type="password" id="hbePass">      <label class="hbe hbe-input-label hbe-input-label-xray" for="hbePass">        <span class="hbe hbe-input-label-content hbe-input-label-content-xray">OVO.</span>      </label>      <svg class="hbe hbe-graphic hbe-graphic-xray" width="300%" height="100%" viewBox="0 0 1200 60" preserveAspectRatio="none">        <path d="M0,56.5c0,0,298.666,0,399.333,0C448.336,56.5,513.994,46,597,46c77.327,0,135,10.5,200.999,10.5c95.996,0,402.001,0,402.001,0"></path>        <path d="M0,2.5c0,0,298.666,0,399.333,0C448.336,2.5,513.994,13,597,13c77.327,0,135-10.5,200.999-10.5c95.996,0,402.001,0,402.001,0"></path>      </svg>    </div>  </div></div><script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
+      
+      
       <categories>
-        <category>PWN</category>
+          
+          <category> Personal </category>
+          
       </categories>
-      <tags>
-        <tag>PWN</tag>
-        <tag>字符串</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>record_1</title>
-    <url>/2019/09/01/record-1/</url>
-    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="你好再见." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="c215117672fadbe50f585261aa345213677ad2a78964d735dd44b26442556310">ea01187b15b1e247184f97b08f75debb7271ac095bcdff3f18add65ebb9267c470752735b932f8ea5665c80780a66b66dc97b33ae9264f2690489dffe7452029b85f4b62ab2e38ee5d1b8b278a8ebcf8c3762d86d6d811db2df160dee731a77f83bea675e68e8fd6e2b755e33ba84b83ed76d17a737c76dc6b283fbccafc0f950ae8550600b1d80c183206d8857c1c8b3bfa600d7f73b4279e09228f4426020320055eb0d13234d8f1ad8ab9404d488f1b2bb2ea77e97d83774c6509f42bf37e5d7432d0776278aaf7a56c66640426e621a44bec4717ac37a6d799a2f47be27651cb986899e1cd5d64cadfc2d501c2b0957b17a967d38a76185d27c3bdd1b5777a95a7983d4eaa08f98335a1c0c00658bc59c7f021bf2a7b60f6d1cc33ee88196031a1509c217277e9308e4185eb8be47499062f8f49f36c0b0525c46f212b29df2c31f37acc779ab9dc16a5f7f62af3954e51770e124eecfe778641f683100a990e0d0272aca7b9fc13b7a8577f6cc7da3d8021ad6f5343cfbd3125791b328e3cfc8ca9796535f9dd663dc267130420f3588dbfbde6ba05472d82f604018e1b0401ac084a0c26ce67735f49a1505625fc735ec88b339867d2d222516e112e2a5d90a829330747276f7ec707ec9d2375048f0ccbb54b43f3c8cab5a2f1bc8361a93c88dfb52073ceea334c49ecf6cb15fb8d711149b908ec98fd0e04fe70ff4ba743d131912563b2e8ea0af636c51d6473b2b2101281ab7fc1850ff8436f696c4a538f900feefc1b6021ff8b916b34fd86e73dee127c897c744bc913f053a3e15cf91524c2427492499e12a330c2d40fd790fa9c391da90e6938fe855b5312749156c8692fc8730f8de31b5a394c68a77c30dc6d778cfbd20b881643a71ac9e46bfe0e840efe6c032dd337162e03298dacde58c07f786704a693cf0c4ffe206aa3a624db91ee0ec460c71498a61b7a51270caf82716bd6f5cc70f84c4f9bf45ef7e8af6cd0819cb733b5b0c06eed9ab03b1729fd878b1f77d5574960ef24dd9f702669db01df9b3a73dbbae97be117b10d2ee988cb3fe250269dae790c5c52ebc9177c2d8b84e37ca26ce47c73f20d312c577fcace852910780c76c36fbd83f3c8a1f88aac4d9fe0cec85f4d921625911372438a502325baf979ec6932b04fde4622f33eebed966a520fb88dd1476a8f8dfe86a4d0c602c2cf5bf5458311edf24bf599133e74551da5566da221571124ddd13225fddc066bebdef3b0526bf45ba3e61bb639927f636bd16f2cec06d4648e26bde7dc53123d3ed0a240679df529b2f61c85897cbcda1a096bb76974d359172f2beb256e8ba632c00e858e43c205c234c0ca542d1a50c7f89014f5c4e13489583a46cdac1572796cfc43fa5bbf1a8897a60095bb54cd2b173167d2f741c87c31e46c18366e0c6b006cc44a64948ea5889d340aabdf76c4f3ceb02c5c2d542359f03a7523c93690077b28efed9657d4a879ca187d7fbdf9699879b90568ebe32bd80a7af873f578e736bd3d8fa2cc420f3c491230d49982c77497664f121be0764e51bd10e15616118bf9b3ddac747691e3c0de97b9f78de0204673b600b5bacee0e890af5f7619fc087c6acdf199ea10f8c16a5b317fae7b90abf81f826b595b720006585a1ba98e1c19f65bcfeb50c643ab239e81751e96744b87dbbc003f761047caa993a6584ea0a2c7e1aea63711e82041a3a4f44819c0cedc7e5c40699001a667244c396190f6a180e1747cb83285021422065ca624148844aabe4e4d6acb5a7769cdefb87d183a758e3de93bb618604c01548da0e1b38afb139385d5b8e6446ccfff1e8fce9f32cfdbc04a115f08c191afbd4cbcc4e5fab7c5390277887a68636352f4d07e0d1910fdd04ace177d8354edccf317ee3b2af3cb527cfd29d5de5d877d2a4040c85ec09eaa56dd27c7845fccdbb6276480c8d8c354dfb6dc2e30b805450088168f57bcd1fdf7a8e85568a3ae4cc2905167913cd836a0238a253f00aa3e842d4deed9ca1062b8384dcbc2182316b98f56024ee4ac9af80428754809f29c0f2085b852c997b5258c95fc8b4ff68510ed9d594536a4ac860b2aded0c39e33d129cf2c1ac9d2eb35e435f5f9495f3a9092c721be8be7b4dd816d79923db7d1bb925a4e31228bf5295cdb05c23bcb51530710cabaa737fd43416d42d0b8003a1a9c4dd2f80c819b49dc7b983422499d09204639aea38c8b45eda8023865f3c45125a6e68e9492b4237d68a3d4ed6bf52c531fae4b3ee1375485ede9feb78952ce4d3c6e7970c31378f622769d5e1f4c22ca646c3fcb067fbe7b2596a6cf4ecf8d6f0c0822f34088e9d69d1667cc73768931d0f017234fa7123f0aa001c2f49f331dc97cc05dfbd908ef18b015a3615e88cb0d01e277902ee5b0bf8ae91f859fe2ac4bfd947852bcbcf897327871b4c209067229552630f1fe0f8eb304174a72c919cd85a5588c8c200bc0aa61f3d1f6b8e93cfe8a5490ff4aa9d7386ac5009ad361ea4570b2ff484073f65de1c9e21553a6ec3ebc8563de604cfcb8a2e70c61208eb8f28e06d073b84dd1fd6e383f59d7c7b184cfe25ea7cc32b77220958c7c1276f66ca32e9d3a2ba56ae73c7cee497722a322ad5be99cb77ddbdac80622fd8fb76e853196df2422bbe0f785d1a5a85421fa65028ed3ae2cc79d7e7d9fbbda5c444d866ff1fd4960f25d524ffa809d678d2d0fb5c8f9884e67dd1ed04367e5e2b85c21c74c0dfd6c54bff389613c4b21b391a1df3d23c586c180db4e20ce2441981479c311478a0832ea3876cf93da7b7420e9a2bb928348d7bd49c066521611cd4dedf57a44ad84780469ff55d52a51cbfaf8426d6ff4bfc2b167ebcf4b342481fe3807fdb49c101507a3b1a08a90a22c3410eecca58725cb5aca81255ef5b4dac89cba640bbca81cb15ed01ce8b9df64125cb07d2ecadc35cc3c799d7032b73c9a258aeb1b2bb0e0e0d53c6fdf582e00281667bc7292c511bd1bccb1545f90fc0edf28e364eb04d6fe2fad2628bd91c547b352340e5c19e4ea48a4b50968b3c39c4bc0f293e1473979ecc475f29e14dd86b937587fa2babd2f79f04f4ad340e67aad830a67305d698df1e4862875391c7a191891f8c46c52339be1255c0535d14a913011145429a0524e95fcd5aaa514810917e64af68f88152eeac9f8e832c152b61cac2b2ae05a32e84e203ab6ca852a6a2aa9de2f1b9180442dd7c86355d478ee07f0720c0b0b9eb4f624f6a6af810d544e211597d24473fdba23af06d288572c307b488031d6ede15c9bbcbf35de1ec00c655986f43777f24c3c78af0dc9f3a276c906262d96ee4ff240fd49f49be8ec4c8203d96cc3ab2ff05ae80f1fea324f6722a6384859f544e6140d9b8592f24aca0429f0b15d4c99cb77b995421718ead32c4b5fb0d45297682af580493abc1d6cd8b6c40e8fc94e9213f09e68ccb139779c669aad75cdf67c65942f32d8f6c6a71dc2bf360c0cd19b8d8f395bab852851cecf75f80b983305fe61d5d97f583141a5f5072d1fcca7e10fa6bb630666c235a8600e4edbe2cd0cbd817359aaefea1c92de25e94a996dac0b6a179ea87f5537ec6e5a5719113cf5fe6f754f00b5c2180d0064ee29928986a4c497a963fef97e6d83d79d4734c2e303dea35423bbeb44b75a7fa54156e723d0607d577de9231aac058f1b22655d38ce90dc4ad248656c5f032915a7cfaef309989c23fb9fd3d4ac3f9a5db5e52a54eb4a0572f3a85777a07858d6e8adf85c417c297bc21a8b42f4cdbc4cae6f37fcd28dc92faf4086c31e9c81f94229d400be2af0a3c9420c34e7d42efca04b580e2e2914823fcf974d4776f602eab397f9f012dd79cd9c9d1272d408c778c4ad97fd3f7ca7d2f9085832ff6f194f1867c42d6db487d8629ff8d70dcdcfd38ebfd4e1b52a5058f4f91f33da18396aa332d70c397a6c33455768b5e1b72d4fdaebc8f9abd1bc168d8fb6bea7a437</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-default">
-      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-default">OVO.</span>
-      </label>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
+      
+      
+        <tags>
+            
+            <tag> Personal </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>ELF文件格式</title>
+      <link href="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/"/>
+      <url>/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/</url>
+      
+        <content type="html"><![CDATA[<h1 id="ELF文件结构"><a href="#ELF文件结构" class="headerlink" title="ELF文件结构"></a>ELF文件结构</h1><p>ELF全称为Executable and Linkable Format，是 Linux 中的目标文件。</p><span id="more"></span><p>其内容视图主要有两种</p><img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/object_file_format.png" class="" title="Link View"><p>以链接视图来分析ELF的文件格式</p><ul><li>ELF Header -&gt; 存放ELF文件的整体信息</li><li>Program Header Table -&gt; 存放程序执行时所需要的信息。其实就是段信息</li><li>Section -&gt; 存放程序大部分信息：指令、数据、符号表等等</li><li>Section Header Table -&gt; 存放描述节区的信息</li></ul><h1 id="ELF-Header"><a href="#ELF-Header" class="headerlink" title="ELF Header"></a>ELF Header</h1><p>用于索引ELF全部的信息，其数据结构如下（数据结构可以在&#x2F;usr&#x2F;include&#x2F;elf.h查看）</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* The ELF file header.  This appears at the start of every ELF file.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span>e_ident[EI_NIDENT];<span class="comment">/* Magic number and other info */</span></span><br><span class="line">  Elf32_Halfe_type;<span class="comment">/* Object file type */</span></span><br><span class="line">  Elf32_Halfe_machine;<span class="comment">/* Architecture */</span></span><br><span class="line">  Elf32_Worde_version;<span class="comment">/* Object file version */</span></span><br><span class="line">  Elf32_Addre_entry;<span class="comment">/* Entry point virtual address */</span></span><br><span class="line">  Elf32_Offe_phoff;<span class="comment">/* Program header table file offset */</span></span><br><span class="line">  Elf32_Offe_shoff;<span class="comment">/* Section header table file offset */</span></span><br><span class="line">  Elf32_Worde_flags;<span class="comment">/* Processor-specific flags */</span></span><br><span class="line">  Elf32_Halfe_ehsize;<span class="comment">/* ELF header size in bytes */</span></span><br><span class="line">  Elf32_Halfe_phentsize;<span class="comment">/* Program header table entry size */</span></span><br><span class="line">  Elf32_Halfe_phnum;<span class="comment">/* Program header table entry count */</span></span><br><span class="line">  Elf32_Halfe_shentsize;<span class="comment">/* Section header table entry size */</span></span><br><span class="line">  Elf32_Halfe_shnum;<span class="comment">/* Section header table entry count */</span></span><br><span class="line">  Elf32_Halfe_shstrndx;<span class="comment">/* Section header string table index */</span></span><br><span class="line">&#125; Elf32_Ehdr;</span><br></pre></td></tr></table></figure><p>只了解其中部分含义</p><h2 id="e-ident"><a href="#e-ident" class="headerlink" title="e_ident"></a>e_ident</h2><p>其下标含义如下</p><table><thead><tr><th>宏名称</th><th>下标</th><th>目的</th></tr></thead><tbody><tr><td>EI_MAG0</td><td>0</td><td>文件标识</td></tr><tr><td>EI_MAG0</td><td>1</td><td>文件标识</td></tr><tr><td>EI_MAG0</td><td>2</td><td>文件标识</td></tr><tr><td>EI_MAG0</td><td>3</td><td>文件标识</td></tr><tr><td>EI_CLASS</td><td>4</td><td>文件类</td></tr><tr><td>EI_DATA</td><td>5</td><td>数据编码</td></tr><tr><td>EI_VERSION</td><td>6</td><td>文件版本</td></tr><tr><td>EI_PAD</td><td>7</td><td>补齐字节开始处</td></tr></tbody></table><p>下标0-3称为魔数标识ELF文件<br>下标4<strong>EI_CLASS</strong>定义ELF类型，有以下取值</p><table><thead><tr><th>名称</th><th>值</th><th>意义</th></tr></thead><tbody><tr><td>ELFCLASSNONE</td><td>0</td><td>无效类型</td></tr><tr><td>ELFCLASS32</td><td>1</td><td>32 位文件</td></tr><tr><td>ELFCLASS64</td><td>2</td><td>64 位文件</td></tr></tbody></table><p>下标5 <strong>EI_DATA</strong> 定义大小端模式，有以下取值</p><table><thead><tr><th>名称</th><th>值</th><th>意义</th></tr></thead><tbody><tr><td>ELFDATANONE</td><td>0</td><td>无效数据编码</td></tr><tr><td>ELFDATA2LSB</td><td>1</td><td>小端</td></tr><tr><td>ELFDATA2MSB</td><td>2</td><td>大端</td></tr></tbody></table><p>下标6 <strong>EI_DATA</strong>  定义ELF头的版本号，与e_version相同<br>下标7 <strong>EI_PAD</strong>  给出了e_ident中未使用字节的开始地址。这些字节被保留并置为 0；处理目标文件的程序应该忽略它们。如果之后这些字节被使用，EI_PAD 的值就会改变。</p><h2 id="e-phoff"><a href="#e-phoff" class="headerlink" title="e_phoff"></a>e_phoff</h2><p>给出程序头部表在文件中的字节偏移（Program Header table OFFset）。如果文件中没有程序头部表，则为 0。</p><h2 id="e-shoff"><a href="#e-shoff" class="headerlink" title="e_shoff"></a>e_shoff</h2><p>给出节头表在文件中的字节偏移（ Section Header table OFFset ）。如果文件中没有节头表，则为 0。</p><h1 id="Program-Header-Table"><a href="#Program-Header-Table" class="headerlink" title="Program Header Table"></a>Program Header Table</h1><p>其类型为Elf32_Phdr结构体数组，ELF  Header中的 e_phentsize 和 e_phnum 指定了该数组每个元素的大小以及元素个数。数据结构如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Program segment header.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Wordp_type;<span class="comment">/* Segment type */</span></span><br><span class="line">  Elf32_Offp_offset;<span class="comment">/* Segment file offset */</span></span><br><span class="line">  Elf32_Addrp_vaddr;<span class="comment">/* Segment virtual address */</span></span><br><span class="line">  Elf32_Addrp_paddr;<span class="comment">/* Segment physical address */</span></span><br><span class="line">  Elf32_Wordp_filesz;<span class="comment">/* Segment size in file */</span></span><br><span class="line">  Elf32_Wordp_memsz;<span class="comment">/* Segment size in memory */</span></span><br><span class="line">  Elf32_Wordp_flags;<span class="comment">/* Segment flags */</span></span><br><span class="line">  Elf32_Wordp_align;<span class="comment">/* Segment alignment */</span></span><br><span class="line">&#125; Elf32_Phdr;</span><br></pre></td></tr></table></figure><p>前面说过其实这个表就是存放段信息的，暂且先了解p_type，p_offset字段</p><h2 id="p-type"><a href="#p-type" class="headerlink" title="p_type"></a>p_type</h2><p>描述段类型，具体取值如下</p><table><thead><tr><th>名字</th><th>取值</th><th>说明</th></tr></thead><tbody><tr><td>PT_NULL</td><td>0</td><td>表明段未使用，其结构中其他成员都是未定义的。</td></tr><tr><td>PT_LOAD</td><td>1</td><td>此类型段为一个可加载的段，大小由 p_filesz 和 p_memsz 描述。文件中的字节被映射到相应内存段开始处。如果 p_memsz 大于 p_filesz，“剩余” 的字节都要被置为 0。p_filesz 不能大于 p_memsz。可加载的段在程序头部中按照 p_vaddr 的升序排列。</td></tr><tr><td>PT_DYNAMIC</td><td>2</td><td>此类型段给出动态链接信息。</td></tr><tr><td>PT_INTERP</td><td>3</td><td>此类型段给出了一个以 NULL 结尾的字符串的位置和长度，该字符串将被当作解释器调用。这种段类型仅对可执行文件有意义（也可能出现在共享目标文件中）。此外，这种段在一个文件中最多出现一次。而且这种类型的段存在的话，它必须在所有可加载段项的前面。</td></tr><tr><td>PT_NOTE</td><td>4</td><td>此类型段给出附加信息的位置和大小。</td></tr><tr><td>PT_SHLIB</td><td>5</td><td>该段类型被保留，不过语义未指定。而且，包含这种类型的段的程序不符合 ABI 标准。</td></tr><tr><td>PT_PHDR</td><td>6</td><td>该段类型的数组元素如果存在的话，则给出了程序头部表自身的大小和位置，既包括在文件中也包括在内存中的信息。此类型的段在文件中最多出现一次。此外，只有程序头部表是程序的内存映像的一部分时，它才会出现。如果此类型段存在，则必须在所有可加载段项目的前面。</td></tr><tr><td>PT_LOPROC~PT_HIPROC</td><td>0x70000000 ~0x7fffffff</td><td>此范围的类型保留给处理器专用语义。</td></tr></tbody></table><h2 id="p-offset"><a href="#p-offset" class="headerlink" title="p_offset"></a>p_offset</h2><p>存放从文件开始到该段开头的第一个字节的偏移</p><h2 id="关于段和节的关系"><a href="#关于段和节的关系" class="headerlink" title="关于段和节的关系"></a>关于段和节的关系</h2><p>简单来说段就是节的集合，段主要在程序装载时起作用。</p><img src="/2019/08/30/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/text_segment.png" class="" title="text segment"><ul><li>有执行功能的代码指令流和只读属性的数据节组合成只读代码段。</li><li>可修改的数据变量，和动态调用的相对地址寻址入口组合成读写数据段。</li><li>不同的段来说可能会有所重合，即不同的段包含相同的节</li></ul><h1 id="Section-Header-Table"><a href="#Section-Header-Table" class="headerlink" title="Section Header Table"></a>Section Header Table</h1><p>其类型为ELF32_Shdr结构体数组，存放节信息。其数据结构如下</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Section header.  */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Wordsh_name;<span class="comment">/* Section name (string tbl index) */</span></span><br><span class="line">  Elf32_Wordsh_type;<span class="comment">/* Section type */</span></span><br><span class="line">  Elf32_Wordsh_flags;<span class="comment">/* Section flags */</span></span><br><span class="line">  Elf32_Addrsh_addr;<span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf32_Offsh_offset;<span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf32_Wordsh_size;<span class="comment">/* Section size in bytes */</span></span><br><span class="line">  Elf32_Wordsh_link;<span class="comment">/* Link to another section */</span></span><br><span class="line">  Elf32_Wordsh_info;<span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf32_Wordsh_addralign;<span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf32_Wordsh_entsize;<span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf32_Shdr;</span><br></pre></td></tr></table></figure><p>还是先了解部分字段</p><h2 id="sh-type"><a href="#sh-type" class="headerlink" title="sh_type"></a>sh_type</h2><table><thead><tr><th>名称</th><th>取值</th><th>说明</th></tr></thead><tbody><tr><td>SHT_NULL</td><td>0</td><td>该类型节区是非活动的，这种类型的节头中的其它成员取值无意义。</td></tr><tr><td>SHT_PROGBITS</td><td>1</td><td>该类型节区包含程序定义的信息，它的格式和含义都由程序来决定。</td></tr><tr><td>SHT_SYMTAB</td><td>2</td><td>该类型节区包含一个符号表（SYMbol TABle）。目前目标文件对每种类型的</td></tr><tr><td>SHT_STRTAB</td><td>3</td><td>该类型节区包含字符串表（ STRing TABle ）。</td></tr><tr><td>SHT_RELA</td><td>4</td><td>该类型节区包含显式指定位数的重定位项（ RELocation entry with Addends ），例如，32 位目标文件中的 Elf32_Rela 类型。此外，目标文件可能拥有多个重定位节区。</td></tr><tr><td>SHT_HASH</td><td>5</td><td>该类型节区包含符号哈希表（ HASH table ）。</td></tr><tr><td>SHT_DYNAMIC</td><td>6</td><td>该类型节区包含动态链接的信息（ DYNAMIC linking ）。</td></tr><tr><td>SHT_NOTE</td><td>7</td><td>该类型节区包含以某种方式标记文件的信息（NOTE）。</td></tr><tr><td>SHT_NOBITS</td><td>8</td><td>该类型节区不占用文件的空间，其它方面和 SHT_PROGBITS 相似。尽管该类型节区不包含任何字节，其对应的节头成员 sh_offset 中还是会包含概念性的文件偏移。</td></tr><tr><td>SHT_REL</td><td>9</td><td>该类型节区包含重定位表项（RELocation entry without Addends），不过并没有指定位数。例如，32 位目标文件中的 Elf32_rel 类型。目标文件中可以拥有多个重定位节区。</td></tr><tr><td>SHT_SHLIB</td><td>10</td><td>该类型此节区被保留，不过其语义尚未被定义。</td></tr><tr><td>SHT_DYNSYM</td><td>11</td><td>作为一个完整的符号表，它可能包含很多对动态链接而言不必 要的符号。因此，目标文件也可以包含一个 SHT_DYNSYM 节区，其中保存动态链接符号的一个最小集合，以节省空间。</td></tr><tr><td>SHT_LOPROC</td><td>0X70000000</td><td>此值指定保留给处理器专用语义的下界（ LOw PROCessor-specific semantics ）。</td></tr><tr><td>SHT_HIPROC</td><td>0X7FFFFFFF</td><td>此值指定保留给处理器专用语义的上界（ HIgh PROCessor-specific semantics ）。</td></tr><tr><td>SHT_LOUSER</td><td>0X80000000</td><td>此值指定保留给应用程序的索引下界。</td></tr><tr><td>SHT_HIUSER</td><td>0X8FFFFFFF</td><td>此值指定保留给应用程序的索引上界。</td></tr></tbody></table><h1 id="Section"><a href="#Section" class="headerlink" title="Section"></a>Section</h1><p>节区包含目标文件中除了 ELF 头部、程序头部表、节区头部表的所有信息。节区满足以下条件：</p><ul><li>每个节区都有对应的节头来描述它。但是反过来，节区头部并不一定会对应着一个节区。</li><li>每个节区在目标文件中是连续的，但是大小可能为 0。</li><li>任意两个节区不能重叠，即一个字节不能同时存在于两个节区中。</li><li>目标文件中可能会有闲置空间（inactive space），各种头和节不一定会覆盖到目标文件中的所有字节，闲置区域的内容未指定。</li></ul><p>先了解一些特殊节（前边带.的节是系统保留的）</p><table><thead><tr><th>名称</th><th>类型</th><th>属性</th><th>含义</th></tr></thead><tbody><tr><td>.comment</td><td>SHT_PROGBITS</td><td></td><td>包含版本控制信息。</td></tr><tr><td>.debug</td><td>SHT_PROGBITS</td><td></td><td>此节区包含用于符号调试的信息。</td></tr><tr><td>.dynamic</td><td>SHT_DYNAMIC</td><td>SHF_ALLOC SHF_WRITE</td><td>此节区包含动态链接信息。SHF_WRITE 位设置与否是否被设置取决于具体的处理器。</td></tr><tr><td>.dynstr</td><td>SHT_STRTAB</td><td>SHF_ALLOC</td><td>此节区包含用于动态链接的字符串，大多数 情况下这些字符串代表了与符号表项相关的名称。</td></tr><tr><td>.dynsym</td><td>SHT_DYNSYM</td><td>SHF_ALLOC</td><td>此节区包含动态链接符号表。</td></tr><tr><td>.got</td><td>SHT_PROGBITS</td><td></td><td>此节区包含全局偏移表。</td></tr><tr><td>.line</td><td>SHT_PROGBITS</td><td></td><td>此节区包含符号调试的行号信息，描述了源程序与机器指令之间的对应关系，其内容是未定义的。</td></tr><tr><td>.plt</td><td>SHT_PROGBITS</td><td></td><td>此节区包含过程链接表（procedure linkage table）。</td></tr><tr><td>.relname</td><td>SHT_REL</td><td></td><td>这些节区中包含重定位信息。如果文件中包含可加载的段，段中有重定位内容，节区的属性将包含 SHF_ALLOC 位，否则该位置 0。传统上 name 根据重定位所适用的节区给定。例如 .text 节区的重定位节区名字将是：.rel.text 或者 .rela.text。</td></tr><tr><td>.relaname</td><td>SHT_RELA</td><td></td><td></td></tr><tr><td>.shstrtab</td><td>SHT_STRTAB</td><td></td><td>此节区包含节区名称。</td></tr></tbody></table>]]></content>
+      
+      
       <categories>
-        <category>Personal</category>
+          
+          <category> PWN </category>
+          
       </categories>
-      <tags>
-        <tag>Personal</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>对于开启PIE的ELF文件调试方法</title>
-    <url>/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/</url>
-    <content><![CDATA[<p>最近调试程序时候遇到很多题目开启了PIE保护</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/check.png" class="" title="checksec">
-<p>加上大部分将符号表删除，这对于使用GDB来下断点来说比较难以定位，以下将几种常见的做法总结。</p>
-<span id="more"></span>
-
-<h1 id="查看ELF基址"><a href="#查看ELF基址" class="headerlink" title="查看ELF基址"></a>查看ELF基址</h1><p>稍微复杂的方法是查看程序运行时ELF基址，然后与获取的偏移地址相加，有两种方式可以查看一种使用pamp来查看进程的地址段及其权限，另一种方法为查看生成的动态链接文件。</p>
-<h2 id="pmap"><a href="#pmap" class="headerlink" title="pmap"></a>pmap</h2><p>在GDB调试程序时先执行run命令</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/run.png" class="" title="run">
-<p>然后使用ps -A查看进程的PID</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pid.png" class="" title="获取进程PID">
-<p>使用pmap PID</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pmap.png" class="" title="pmap查看地址段">
-<p>第一行即为ELF基址</p>
-<h2 id="查看动态链接文件"><a href="#查看动态链接文件" class="headerlink" title="查看动态链接文件"></a>查看动态链接文件</h2><p>这种方式与pmap方式相似，在找出进程PID后，查看/proc/<PID>/map_files/目录，第一个文件名称即为ELF基址</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/map_files.png" class="" title="查看动态链接文件">
-
-<h1 id="b-rebase-addr"><a href="#b-rebase-addr" class="headerlink" title="b *$rebase(addr)"></a>b *$rebase(addr)</h1><p>pwngdb插件提供了rebase命令可以快速定位偏移地址，使用方法为b *$rebase(偏移地址)</p>
-<img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/rebase.png" class="" title="rebase">]]></content>
+      
+      
+        <tags>
+            
+            <tag> PWN </tag>
+            
+            <tag> ELF </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>2019-CISCN</title>
+      <link href="/2019/08/29/2019-CISCN/"/>
+      <url>/2019/08/29/2019-CISCN/</url>
+      
+        <content type="html"><![CDATA[<h1 id="初赛"><a href="#初赛" class="headerlink" title="初赛"></a>初赛</h1><h2 id="签到"><a href="#签到" class="headerlink" title="签到"></a>签到</h2><p>人脸识别</p><h2 id="easyGO"><a href="#easyGO" class="headerlink" title="easyGO"></a>easyGO</h2><p>gdb里面动态调试，第一个call步进，然后一路单步下去，能直接找到真flag</p><img src="/2019/08/29/2019-CISCN/1.png" class="" title="easyGO"><h2 id="puzzles"><a href="#puzzles" class="headerlink" title="puzzles"></a>puzzles</h2><p>数学题。。队里数学大佬写的（考研人无敌）</p><h3 id="question-0"><a href="#question-0" class="headerlink" title="question 0"></a>question 0</h3><img src="/2019/08/29/2019-CISCN/2.1.png" class="" title="question 0"><p>写脚本求解</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> scipy.linalg <span class="keyword">import</span> solve</span><br><span class="line">a = np.array([[<span class="number">13627</span>, <span class="number">26183</span>, <span class="number">35897</span>, <span class="number">48119</span>], [<span class="number">23027</span>,<span class="number">38459</span>,<span class="number">40351</span>,<span class="number">19961</span>], [<span class="number">36013</span>,<span class="number">45589</span>,<span class="number">17029</span>,<span class="number">27823</span>],[<span class="number">43189</span>,<span class="number">12269</span>,<span class="number">21587</span>,<span class="number">33721</span>]])</span><br><span class="line">b = np.array([<span class="number">347561292</span>,<span class="number">361760202</span>,<span class="number">397301762</span>,<span class="number">350830412</span>])</span><br><span class="line">x = solve(a, b)</span><br><span class="line"><span class="built_in">print</span>(x) </span><br></pre></td></tr></table></figure><blockquote><p>a1,a2,a3,a4&#x3D;[4006,3053,2503,2560]</p></blockquote><h3 id="question-1"><a href="#question-1" class="headerlink" title="question 1"></a>question 1</h3><img src="/2019/08/29/2019-CISCN/2.2.png" class="" title="question 1"><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">handlerNum</span>(<span class="params">num</span>):</span><br><span class="line">    <span class="keyword">if</span> num &gt; <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>, num//<span class="number">2</span>+<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> (num % i) == <span class="number">0</span>:</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">26364809</span>, <span class="number">26366033</span>):</span><br><span class="line">        <span class="keyword">if</span> handlerNum(i):</span><br><span class="line">            <span class="built_in">print</span>(i)</span><br></pre></td></tr></table></figure><p>Part1 &#x3D; 26365399</p><h3 id="question-2"><a href="#question-2" class="headerlink" title="question 2"></a>question 2</h3><img src="/2019/08/29/2019-CISCN/2.3.png" class="" title="question 2"><p>第一部分洛必达，第二第三部分正常积分，第四部分分部积分:</p><img src="/2019/08/29/2019-CISCN/2.4.jpg" class="" title="question 2"><h3 id="question-3"><a href="#question-3" class="headerlink" title="question 3"></a>question 3</h3><img src="/2019/08/29/2019-CISCN/2.5.png" class="" title="question 3"><img src="/2019/08/29/2019-CISCN/2.6.jpg" class="" title="question 3"><h3 id="question-4"><a href="#question-4" class="headerlink" title="question 4"></a>question 4</h3><img src="/2019/08/29/2019-CISCN/2.7.png" class="" title="question 4"><p>柱面法解三重积分</p><img src="/2019/08/29/2019-CISCN/2.8.jpg" class="" title="question 4"><p>组合得FLAG</p><h2 id="JustSoso"><a href="#JustSoso" class="headerlink" title="JustSoso"></a>JustSoso</h2><p>伪协议读文件，基本的反序列化。</p><h2 id="your-pwn"><a href="#your-pwn" class="headerlink" title="your_pwn"></a>your_pwn</h2><p>数组下标没有check，可以越界读写。gdb里面动态调试先确定libc和返回地址的偏移，相当于数组的632和344，然后利用数组越界泄露__libc_start_main地址然后计算libc基址，然后把libc+one_gadget的地址写入返回地址。</p><h2 id="saleae"><a href="#saleae" class="headerlink" title="saleae"></a>saleae</h2><p>下载saleae即可读取</p><h2 id="usbasp"><a href="#usbasp" class="headerlink" title="usbasp"></a>usbasp</h2><p>同上</p><h2 id="24C"><a href="#24C" class="headerlink" title="24C"></a>24C</h2><p>同上，set up write to信号的下一行字符的ASCII值表示接下来数据要修改的位置，在5.9s左右的set up write信号下将字符ac覆盖了9e的位置</p><h2 id="daily"><a href="#daily" class="headerlink" title="daily"></a>daily</h2><p>show函数存在漏洞，输出的时候未截断，能leak出heap与libc的地址<br>fastbins的free能泄露出heap的地址<br>smallbins的free能泄露出libc的地址<br>delete()的free没有检查下标，能构造double free，从而修改free 地址为system，构造system(‘&#x2F;bin&#x2F;sh’)并执行</p><img src="/2019/08/29/2019-CISCN/3.png" class="" title="daily"><h2 id="全宇宙最简单的SQL"><a href="#全宇宙最简单的SQL" class="headerlink" title="全宇宙最简单的SQL"></a>全宇宙最简单的SQL</h2><p>主要用到虚拟表和exp报错</p><h2 id="partdes"><a href="#partdes" class="headerlink" title="partdes"></a>partdes</h2><p>第13轮解出字符串</p><h2 id="baby-pwn"><a href="#baby-pwn" class="headerlink" title="baby_pwn"></a>baby_pwn</h2><p>ret2dlresolve,用roputils直接生成ropchain来getshell</p><img src="/2019/08/29/2019-CISCN/4.png" class="" title="baby_pwn">]]></content>
+      
+      
       <categories>
-        <category>PWN</category>
+          
+          <category> CTF </category>
+          
       </categories>
-      <tags>
-        <tag>PWN</tag>
-        <tag>调试</tag>
-        <tag>GDB</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>栈溢出</title>
-    <url>/2019/09/05/%E6%A0%88%E6%BA%A2%E5%87%BA/</url>
-    <content><![CDATA[<h1 id="ret2syscall"><a href="#ret2syscall" class="headerlink" title="ret2syscall"></a>ret2syscall</h1><p>系统调用三种方式int 80，syscenter，syscall<br>int 80，syscenter传参方式eax，ebx，ecx，edx<br>syscall传参方式rdi,rsi,rdx,r10,r9,r8</p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> CTF </tag>
+            
+            <tag> writeup </tag>
+            
+            <tag> CISCN </tag>
+            
+            <tag> 2019 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>对于开启PIE的ELF文件调试方法</title>
+      <link href="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/"/>
+      <url>/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/</url>
+      
+        <content type="html"><![CDATA[<p>最近调试程序时候遇到很多题目开启了PIE保护</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/check.png" class="" title="checksec"><p>加上大部分将符号表删除，这对于使用GDB来下断点来说比较难以定位，以下将几种常见的做法总结。</p><span id="more"></span><h1 id="查看ELF基址"><a href="#查看ELF基址" class="headerlink" title="查看ELF基址"></a>查看ELF基址</h1><p>稍微复杂的方法是查看程序运行时ELF基址，然后与获取的偏移地址相加，有两种方式可以查看一种使用pamp来查看进程的地址段及其权限，另一种方法为查看生成的动态链接文件。</p><h2 id="pmap"><a href="#pmap" class="headerlink" title="pmap"></a>pmap</h2><p>在GDB调试程序时先执行run命令</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/run.png" class="" title="run"><p>然后使用ps -A查看进程的PID</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pid.png" class="" title="获取进程PID"><p>使用pmap PID</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/pmap.png" class="" title="pmap查看地址段"><p>第一行即为ELF基址</p><h2 id="查看动态链接文件"><a href="#查看动态链接文件" class="headerlink" title="查看动态链接文件"></a>查看动态链接文件</h2><p>这种方式与pmap方式相似，在找出进程PID后，查看&#x2F;proc&#x2F;<PID>&#x2F;map_files&#x2F;目录，第一个文件名称即为ELF基址</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/map_files.png" class="" title="查看动态链接文件"><h1 id="b-rebase-addr"><a href="#b-rebase-addr" class="headerlink" title="b *$rebase(addr)"></a>b *$rebase(addr)</h1><p>pwngdb插件提供了rebase命令可以快速定位偏移地址，使用方法为b *$rebase(偏移地址)</p><img src="/2019/08/29/%E5%AF%B9%E4%BA%8E%E5%BC%80%E5%90%AFPIE%E7%9A%84ELF%E6%96%87%E4%BB%B6%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95/rebase.png" class="" title="rebase">]]></content>
+      
+      
       <categories>
-        <category>PWN</category>
+          
+          <category> PWN </category>
+          
       </categories>
-      <tags>
-        <tag>PWN</tag>
-        <tag>栈</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>调色板图像隐写</title>
-    <url>/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/</url>
-    <content><![CDATA[<h2 id="一、实验目的"><a href="#一、实验目的" class="headerlink" title="一、实验目的"></a>一、实验目的</h2><p>了解调色板图像的特点，掌握基于调色板图像的信息隐藏原理，设计并实现一种基于调色板图像的信息隐藏算法。</p>
-<span id="more"></span>
-
-<h2 id="二、实验环境"><a href="#二、实验环境" class="headerlink" title="二、实验环境"></a>二、实验环境</h2><ul>
-<li>Windows XP或Vista操作系统；</li>
-<li>Matlab 7.1版本软件；</li>
-<li>调色板图像。</li>
-</ul>
-<h2 id="三、原理简介"><a href="#三、原理简介" class="headerlink" title="三、原理简介"></a>三、原理简介</h2><p>调色板图像含有一个不超过256种颜色的调色板，并对应每种颜色的R、G、B三种分量的值，图像内容中的每个像素存储的是一个不超过8比特的索引值，其指向调色板中的对应颜色就是图像的真实色彩。大部分图像用到的颜色数小于256种，甚至小于128种，因此可以在调色板中隐藏秘密信息。<br>调色板图像的调色板中最多包含256种颜色，若改变这些颜色的排列顺序并相应地改变图像像素数据，不会对图像内容造成任何影响。因此隐藏秘密信息最简单的方法就是重新排列调色板中的这些颜色，同时修改索引值，但是许多软件生成的调色板都是按照亮度和使用频率排列的，如果在调色板中打乱颜色会使其毫无隐藏可言。如果调色板颜色小于128种，可复制一个调色板，得到一个扩展的周色板，隐藏0使用原始索引值，隐藏1使用扩展索引值，但是重复颜色的调色板会引起使用者怀疑。<br>本节中使用另外一种方法来隐藏信息，对于调色板中的每-种颜色，可以通过修改颜色的蓝色分量（人眼对于绿色分量最为敏感，对蓝色分量最不敏感）来增加一种接近的但不完全相同的颜色，这样就形成一个扩展的调色板。嵌人算法如下:对调色板中所有颜色，把像素点的蓝色分量增加，然后将这种颜色添加到调色板中形成一个扩展调色板。根据需要嵌人的消息长度，随机选取隐藏的位置，当嵌人0时，使用原调色板中的颜色，当嵌人1时，使用扩展后调色板中的颜色。<br>提取时，需要知道原始调色板的长度、随机选择的种子数和隐藏的信息数量，对于选中的像素点，如果使用原调色板中的颜色，提取信息0，如果使用扩展调色板中的颜色，提取信息1。</p>
-<h2 id="四、实验步骤"><a href="#四、实验步骤" class="headerlink" title="四、实验步骤"></a>四、实验步骤</h2><blockquote>
-<p>待加密信息为 you find me!</p>
-</blockquote>
-<img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex.bmp" class="" title="原始图像">
-
-<img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex1.bmp" class="" title="携密图像">
-
-<p>1、嵌入秘密信息</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">[x,map] = imread(&#x27;lenaindex.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">wx = x;</span><br><span class="line">[row col] = size(wx);</span><br><span class="line">wmap = map;</span><br><span class="line"></span><br><span class="line">msgfid = fopen(&#x27;hidden.txt&#x27;,&#x27;r&#x27;);</span><br><span class="line">[msg,count] = fread(msgfid);</span><br><span class="line">fclose(msgfid);</span><br><span class="line">count = count * 8;</span><br><span class="line">msg = str2bit(msg);</span><br><span class="line">msg = msg&#x27;;</span><br><span class="line"></span><br><span class="line">%构造扩展map</span><br><span class="line">oplength = 0;</span><br><span class="line">for i = 1:256</span><br><span class="line">    if map(i,1) ~= 0&amp;&amp;map(i,2) ~= 0&amp;&amp;map(i,3) ~= 0</span><br><span class="line">        oplength = oplength + 1;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">for i = oplength + 1:oplength * 2</span><br><span class="line">    wmap(i,1) = map(i - oplength, 1);</span><br><span class="line">    wmap(i,2) = map(i - oplength, 2);</span><br><span class="line">	%蓝色分量加0.0001</span><br><span class="line">    wmap(i,3) = map(i - oplength, 3) + 0.0001; </span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">%确定隐藏位置</span><br><span class="line">key = 1234;</span><br><span class="line">[row col] = randselect(x,count,key);</span><br><span class="line"></span><br><span class="line">for i = 1:count</span><br><span class="line">    if str2num(msg(i,1)) == 1</span><br><span class="line">        wx(row(i),col(i)) = x(row(i),col(i)) + oplength;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">imwrite(wx,map,&#x27;lenaindex1.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">figure;</span><br><span class="line">subplot(1,2,1);imshow(&#x27;lenaindex.bmp&#x27;);title(&#x27;原始图像&#x27;);</span><br><span class="line">subplot(1,2,2);imshow(&#x27;lenaindex1.bmp&#x27;);title(&#x27;携密图像&#x27;);</span><br></pre></td></tr></table></figure>
-<p>2、提取秘密信息</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">%读入载体图像</span><br><span class="line">[x,map] = imread(&#x27;lenaindex1.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">key = 1234;</span><br><span class="line">count = 96;</span><br><span class="line">for i = 1:count</span><br><span class="line">	msg(i, 1) = 0;</span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">% 找到扩展起始颜色位置</span><br><span class="line">oplength = 64;</span><br><span class="line"></span><br><span class="line">[row col] = randselect(x,count,key);</span><br><span class="line">for i = 1:count</span><br><span class="line">	if x(row(i),col(i))&gt;oplength</span><br><span class="line">		msg(i,1) = 1;</span><br><span class="line">	else</span><br><span class="line">		msg(i,1) = 0;</span><br><span class="line">	end</span><br><span class="line">end</span><br><span class="line">out = bit2str(msg);</span><br><span class="line">fid = fopen(&#x27;message.txt&#x27;,&#x27;wt&#x27;);</span><br><span class="line">fwrite(fid,out);</span><br><span class="line">fclose(fid);</span><br></pre></td></tr></table></figure>
-<p>3、随机位置函数</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function [row col] = randselect(x,count,key)</span><br><span class="line">[m,n] = size(x);</span><br><span class="line">distance1 = ceil(m*n/count);</span><br><span class="line">distance2 = distance1 - 2;</span><br><span class="line">if distance2 == 2</span><br><span class="line">    error(&#x27;载体太小&#x27;);</span><br><span class="line">end</span><br><span class="line">rand(&#x27;state&#x27;,key);</span><br><span class="line">a = rand(1,count);</span><br><span class="line">row = zeros([1 count]);</span><br><span class="line">col = zeros([1 count]);</span><br><span class="line">r = 1;</span><br><span class="line">c = 1;</span><br><span class="line">row(1,1) = r;</span><br><span class="line">col(1,1) = c;</span><br><span class="line">for i=2:count</span><br><span class="line">    if a(i)&gt;=0.5</span><br><span class="line">        c=c+distance1;</span><br><span class="line">    else</span><br><span class="line">        c=c+distance2;</span><br><span class="line">    end</span><br><span class="line">    if c&gt;n</span><br><span class="line">        r=r+1;</span><br><span class="line">        if r&gt;m</span><br><span class="line">            error(&#x27;载体太小&#x27;);</span><br><span class="line">        end</span><br><span class="line">        c = mod(c,n);</span><br><span class="line">        if c==0</span><br><span class="line">            c=1;</span><br><span class="line">        end</span><br><span class="line">    end</span><br><span class="line">    row(1,i)=r;</span><br><span class="line">    col(1,i)=c;</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-<p>4、bit2str</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function [msg] = bit2str(bin)</span><br><span class="line">[row col] = size(bin);</span><br><span class="line">bin = reshape(bin,[8 row/8]);</span><br><span class="line">bin = bin&#x27;;</span><br><span class="line">bin = num2str(bin);</span><br><span class="line">msg = bin2dec(bin);</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-<p>5、str2bit</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">function [bin] = str2bit(msg)</span><br><span class="line">bin = dec2base(msg,2,8);</span><br><span class="line">[row col] = size(bin);</span><br><span class="line">bin = reshape(bin.&#x27;,[1 row*col]);</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> PWN </tag>
+            
+            <tag> 调试 </tag>
+            
+            <tag> GDB </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>C++走过的路-C++中让两个数字输入的时候用逗号隔开</title>
+      <link href="/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/"/>
+      <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-c-%E4%B8%AD%E8%AE%A9%E4%B8%A4%E4%B8%AA%E6%95%B0%E5%AD%97%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E5%80%99%E7%94%A8%E9%80%97%E5%8F%B7%E9%9A%94%E5%BC%80/</url>
+      
+        <content type="html"><![CDATA[<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">int a,b;</span><br><span class="line">cin &gt;&gt; a ;</span><br><span class="line">if (cin.get()==&#x27;,&#x27; ) //如果不按 数字+逗号+数字格式输入，则不允许输入第二个数，以达到限制要求      否则，用户输入数字+空格+数字也能达到输入两个数字</span><br><span class="line">&#123;</span><br><span class="line">  cin&gt;&gt;b ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
       <categories>
-        <category>MISC</category>
+          
+          <category> C++ </category>
+          
       </categories>
-      <tags>
-        <tag>MISC</tag>
-        <tag>图像</tag>
-        <tag>隐写</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>进程通信几种方式</title>
-    <url>/2020/12/30/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/</url>
-    <content><![CDATA[<p>两个进程间经常需要进行数据交换和共享，列出几种方式便于在编程中进行应用。</p>
-<blockquote>
-<p><a href="https://blog.csdn.net/zhongguoren666/article/details/8234098">https://blog.csdn.net/zhongguoren666/article/details/8234098</a></p>
-</blockquote>
-<h1 id="文件映射"><a href="#文件映射" class="headerlink" title="文件映射"></a>文件映射</h1><p>　　文件映射(Memory-Mapped Files)能使进程把文件内容当作进程地址区间一块内存那样来对待。因此，进程不必使用文件I/O操作，只需简单的指针操作就可读取和修改文件的内容。<br>　　Win32 API允许多个进程访问同一文件映射对象，各个进程在它自己的地址空间里接收内存的指针。通过使用这些指针，不同进程就可以读或修改文件的内容，实现了对文件中数据的共享。<br>　　应用程序有三种方法来使多个进程共享一个文件映射对象。<br>　　(1)继承：第一个进程建立文件映射对象，它的子进程继承该对象的句柄。<br>　　(2)命名文件映射：第一个进程在建立文件映射对象时可以给该对象指定一个名字(可与文件名不同)。第二个进程可通过这个名字打开此文件映射对象。另外，第一个进程也可以通过一些其它IPC机制(有名管道、邮件槽等)把名字传给第二个进程。<br>　　(3)句柄复制：第一个进程建立文件映射对象，然后通过其它IPC机制(有名管道、邮件槽等)把对象句柄传递给第二个进程。第二个进程复制该句柄就取得对该文件映射对象的访问权限。<br>　　文件映射是在多个进程间共享数据的非常有效方法，有较好的安全性。但文件映射只能用于本地机器的进程之间，不能用于网络中，而开发者还必须控制进程间的同步。</p>
-<h1 id="共享内存"><a href="#共享内存" class="headerlink" title="共享内存"></a>共享内存</h1><p>　　Win32 API中共享内存(Shared Memory)实际就是文件映射的一种特殊情况。进程在创建文件映射对象时用0xFFFFFFFF来代替文件句柄(HANDLE)，就表示了对应的文件映射对象是从操作系统页面文件访问内存，其它进程打开该文件映射对象就可以访问该内存块。由于共享内存是用文件映射实现的，所以它也有较好的安全性，也只能运行于同一计算机上的进程之间。</p>
-<h1 id="匿名管道"><a href="#匿名管道" class="headerlink" title="匿名管道"></a>匿名管道</h1><p>　　管道(Pipe)是一种具有两个端点的通信通道：有一端句柄的进程可以和有另一端句柄的进程通信。管道可以是单向－一端是只读的，另一端点是只写的；也可以是双向的一管道的两端点既可读也可写。<br>　　匿名管道(Anonymous Pipe)是 在父进程和子进程之间，或同一父进程的两个子进程之间传输数据的无名字的单向管道。通常由父进程创建管道，然后由要通信的子进程继承通道的读端点句柄或写 端点句柄，然后实现通信。父进程还可以建立两个或更多个继承匿名管道读和写句柄的子进程。这些子进程可以使用管道直接通信，不需要通过父进程。<br>　　匿名管道是单机上实现子进程标准I/O重定向的有效方法，它不能在网上使用，也不能用于两个不相关的进程之间。</p>
-<h1 id="命名管道"><a href="#命名管道" class="headerlink" title="命名管道"></a>命名管道</h1><p>　　命名管道(Named Pipe)是服务器进程和一个或多个客户进程之间通信的单向或双向管道。不同于匿名管道的是命名管道可以在不相关的进程之间和不同计算机之间使用，服务器建立命名管道时给它指定一个名字，任何进程都可以通过该名字打开管道的另一端，根据给定的权限和服务器进程通信。<br>　　命名管道提供了相对简单的编程接口，使通过网络传输数据并不比同一计算机上两进程之间通信更困难，不过如果要同时和多个进程通信它就力不从心了。</p>
-<h1 id="邮件槽"><a href="#邮件槽" class="headerlink" title="邮件槽"></a>邮件槽</h1><p>　　邮件槽(Mailslots)提 供进程间单向通信能力，任何进程都能建立邮件槽成为邮件槽服务器。其它进程，称为邮件槽客户，可以通过邮件槽的名字给邮件槽服务器进程发送消息。进来的消 息一直放在邮件槽中，直到服务器进程读取它为止。一个进程既可以是邮件槽服务器也可以是邮件槽客户，因此可建立多个邮件槽实现进程间的双向通信。<br>　　通过邮件槽可以给本地计算机上的邮件槽、其它计算机上的邮件槽或指定网络区域中所有计算机上有同样名字的邮件槽发送消息。广播通信的消息长度不能超过400字节，非广播消息的长度则受邮件槽服务器指定的最大消息长度的限制。<br>　　邮件槽与命名管道相似，不过它传输数据是通过不可靠的数据报(如TCP/IP协议中的UDP包)完成的，一旦网络发生错误则无法保证消息正确地接收，而命名管道传输数据则是建立在可靠连接基础上的。不过邮件槽有简化的编程接口和给指定网络区域内的所有计算机广播消息的能力，所以邮件槽不失为应用程序发送和接收消息的另一种选择。</p>
-<h1 id="剪贴板"><a href="#剪贴板" class="headerlink" title="剪贴板"></a>剪贴板</h1><p>　　剪贴板(Clipped Board)实质是Win32 API中一组用来传输数据的函数和消息，为Windows应用程序之间进行数据共享提供了一个中介，Windows已建立的剪切(复制)－粘贴的机制为不同应用程序之间共享不同格式数据提供了一条捷径。当用户在应用程序中执行剪切或复制操作时，应用程序把选取的数据用一种或多种格式放在剪贴板上。然后任何其它应用程序都可以从剪贴板上拾取数据，从给定格式中选择适合自己的格式。<br>　　剪贴板是一个非常松散的交换媒介，可以支持任何数据格式，每一格式由一无符号整数标识，对标准(预定义)剪贴板格式，该值是Win32 API定义的常量；对非标准格式可以使用Register Clipboard Format函数注册为新的剪贴板格式。利用剪贴板进行交换的数据只需在数据格式上一致或都可以转化为某种格式就行。但剪贴板只能在基于Windows的程序中使用，不能在网络上使用。</p>
-<h1 id="动态数据交换"><a href="#动态数据交换" class="headerlink" title="动态数据交换"></a>动态数据交换</h1><p>　　动态数据交换(DDE)是使用共享内存在应用程序之间进行数据交换的一种进程间通信形式。应用程序可以使用DDE进行一次性数据传输，也可以当出现新数据时，通过发送更新值在应用程序间动态交换数据。<br>　　DDE和剪贴板一样既支持标准数据格式(如文本、位图等)，又可以支持自己定义的数据格式。但它们的数据传输机制却不同，一个明显区别是剪贴板操作几乎总是用作对用户指定操作的一次性应答－如从菜单中选择Paste命令。尽管DDE也可以由用户启动，但它继续发挥作用一般不必用户进一步干预。DDE有三种数据交换方式：<br>　　(1) 冷链：数据交换是一次性数据传输，与剪贴板相同。<br>　　(2) 温链：当数据交换时服务器通知客户，然后客户必须请求新的数据。<br>　　(3) 热链：当数据交换时服务器自动给客户发送数据。<br>　　DDE交换可以发生在单机或网络中不同计算机的应用程序之间。开发者还可以定义定制的DDE数据格式进行应用程序之间特别目的IPC，它们有更紧密耦合的通信要求。大多数基于Windows的应用程序都支持DDE。</p>
-<h1 id="对象连接与嵌入"><a href="#对象连接与嵌入" class="headerlink" title="对象连接与嵌入"></a>对象连接与嵌入</h1><p>　　应用程序利用对象连接与嵌入(OLE)技术管理复合文档(由多种数据格式组成的文档)，OLE提供使某应用程序更容易调用其它应用程序进行数据编辑的服务。例如，OLE支持的字处理器可以嵌套电子表格，当用户要编辑电子表格时OLE库可自动启动电子表格编辑器。当用户退出电子表格编辑器时，该表格已在原始字处理器文档中得到更新。在这里电子表格编辑器变成了字处理器的扩展，而如果使用DDE，用户要显式地启动电子表格编辑器。<br>　　同DDE技术相同，大多数基于Windows的应用程序都支持OLE技术。</p>
-<h1 id="动态连接库"><a href="#动态连接库" class="headerlink" title="动态连接库"></a>动态连接库</h1><p>　　Win32动态连接库(DLL)中的全局数据可以被调用DLL的所有进程共享，这就又给进程间通信开辟了一条新的途径，当然访问时要注意同步问题。<br>　　虽然可以通过DLL进行进程间数据共享，但从数据安全的角度考虑，我们并不提倡这种方法，使用带有访问权限控制的共享内存的方法更好一些。</p>
-<h1 id="远程过程调用"><a href="#远程过程调用" class="headerlink" title="远程过程调用"></a>远程过程调用</h1><p>　　Win32 API提供的远程过程调用(RPC)使应用程序可以使用远程调用函数，这使在网络上用RPC进行进程通信就像函数调用那样简单。RPC既可以在单机不同进程间使用也可以在网络中使用。<br>　　由于Win32 API提供的RPC服从OSF-DCE(Open Software Foundation Distributed Computing Environment)标准。所以通过Win32 API编写的RPC应用程序能与其它操作系统上支持DEC的RPC应用程序通信。使用RPC开发者可以建立高性能、紧密耦合的分布式应用程序。</p>
-<h1 id="NetBios-函数"><a href="#NetBios-函数" class="headerlink" title="NetBios 函数"></a>NetBios 函数</h1><p>　　Win32 API提供NetBios函数用于处理低级网络控制，这主要是为IBM NetBios系统编写与Windows的接口。除非那些有特殊低级网络功能要求的应用程序，其它应用程序最好不要使用NetBios函数来进行进程间通信。</p>
-<h1 id="Sockets"><a href="#Sockets" class="headerlink" title="Sockets"></a>Sockets</h1><p>　　Windows Sockets规范是以U.C.Berkeley大学BSD UNIX中流行的Socket接口为范例定义的一套Windows下的网络编程接口。除了Berkeley Socket原有的库函数以外，还扩展了一组针对Windows的函数，使程序员可以充分利用Windows的消息机制进行编程。<br>　　现在通过Sockets实现进程通信的网络应用越来越多，这主要的原因是Sockets的跨平台性要比其它IPC机制好得多，另外WinSock 2.0不仅支持TCP/IP协议，而且还支持其它协议(如IPX)。Sockets的唯一缺点是它支持的是底层通信操作，这使得在单机的进程间进行简单数据传递不太方便，这时使用下面将介绍的WM_COPYDATA消息将更合适些。</p>
-<h1 id="WM-COPYDATA-消息"><a href="#WM-COPYDATA-消息" class="headerlink" title="WM_COPYDATA 消息"></a>WM_COPYDATA 消息</h1><p>　　WM_COPYDATA是一种非常强大却鲜为人知的消息。当一个应用向另一个应用传送数据时，发送方只需使用调用SendMessage函数，参数是目的窗口的句柄、传递数据的起始地址、WM_COPYDATA消息。接收方只需像处理其它消息那样处理WM_COPY DATA消息，这样收发双方就实现了数据共享。<br>　　WM_COPYDATA是一种非常简单的方法，它在底层实际上是通过文件映射来实现的。它的缺点是灵活性不高，并且它只能用于Windows平台的单机环境下。</p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 归档 </tag>
+            
+            <tag> C++ </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>C++走过的路-深入理解c语言&#39;\0&#39;,&#39;0&#39;,&quot;0&quot; ,0之间的区别</title>
+      <link href="/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3c%E8%AF%AD%E8%A8%800%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/"/>
+      <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3c%E8%AF%AD%E8%A8%800%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/</url>
+      
+        <content type="html"><![CDATA[<h1 id="‘-0’和’0’的区别"><a href="#‘-0’和’0’的区别" class="headerlink" title="‘\0’和’0’的区别"></a>‘\0’和’0’的区别</h1><p>有一个共同点就是它们都是字符，在c语言中，字符是按其所对应的ASCII码来存储的，一个字符占一个字节。请翻开你的ASCII字符集表吧，一般在你的C语言教材的附录上，没有的话网上查查哦。请看第一个ASCII码，对是0，对应的字符是（Null），其实就是’\0’，即空字符。判断一个字符串是否结束的标志就是看是否遇到’\0’，如果遇到’\0’，则表示字符串结束。而字符’0’对应的ASCII码是48，48对应的十六进制数就是0x30，通常我们在编程的时候，用字符转化为数字的时候经常要用到，比如要将’8’转换为数字8，在语句中这样写就可以了，<code>&#39;8&#39;-&#39;0&#39;</code>。这里的8就是数字。</p><h1 id="‘0’和0的区别"><a href="#‘0’和0的区别" class="headerlink" title="‘0’和0的区别"></a>‘0’和0的区别</h1><p>前者是字符常量，后者是整形常量，它们的含义和在计算机中的存储方式截然不同。但是字符常量可以像整数一样在程序中参与相关运算。例如：<code>&#39;8&#39;-3</code>。</p><h1 id="“0”和’0’的区别"><a href="#“0”和’0’的区别" class="headerlink" title="“0”和’0’的区别"></a>“0”和’0’的区别</h1><p>首先”0”是字符串常量，字符串常量是由一对双引号括起的字符序列。例如：”CHINA”,”I LOVE YOU”,”123”等都是合法的字符串常量。’0’是字符常量，字符串常量和字符常量是不同的量。</p><ol><li>字符常量由单引号括起来；字符串常量由双引号括起来。</li><li>字符常量只能是单个字符；字符串常量则可以含一个或多个字符。</li></ol><p>这里先介绍表达上的主要区别，在运用中还有存储空间的不同以及赋值方式的不同等等。</p>]]></content>
+      
+      
       <categories>
-        <category>Code</category>
+          
+          <category> C++ </category>
+          
       </categories>
-      <tags>
-        <tag>编程</tag>
-        <tag>Windows</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Windows驱动双机调试环境搭建</title>
-    <url>/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
-    <content><![CDATA[<blockquote>
-<p><a href="https://docs.microsoft.com/zh-cn/windows-hardware/drivers/debugger/">Windows 调试工具（WinDbg、KD、CDB、NTSD） - Windows drivers | Microsoft Docs</a></p>
-</blockquote>
-<p>驱动调试为了避免调试过程中的各种蓝屏操作，一般会采用双机调试，在一个设备的情况下可以搭配VM进行调试。</p>
-<h1 id="Windbg-VMware"><a href="#Windbg-VMware" class="headerlink" title="Windbg + VMware"></a>Windbg + VMware</h1><blockquote>
-<p><strong>Host OS:</strong> Win10 21H2 LTSC</p>
-<p><strong>Guest OS:</strong> Win10 21H2 LTSC</p>
-</blockquote>
-<p>因为部分设备不支持网络连接调试，这里介绍一下使用串口进行连接。</p>
-<h2 id="VM串口设置"><a href="#VM串口设置" class="headerlink" title="VM串口设置"></a>VM串口设置</h2><p>在虚拟机中添加串行端口，并进行如下设置。命名管道可自定义，但是需要与之后Windbg参数相同。</p>
-<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/vmsetting.png" class="" title="VMware设置">
-
-<h2 id="Guest-OS设置"><a href="#Guest-OS设置" class="headerlink" title="Guest OS设置"></a>Guest OS设置</h2><blockquote>
-<p><a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--dbgsettings">BCDEdit /dbgsettings - Windows drivers |微软文档 (microsoft.com)</a></p>
-</blockquote>
-<ol>
-<li><p>管理员启动命令行窗口，进行调试器全局设置</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /dbgsettings serial baudrate:<span class="number">115200</span> debugport:<span class="number">1</span></span><br></pre></td></tr></table></figure>
-
-<p>此处debugport应为命名管道对应的端口号，这里可通过vm设置中的命名来进行确认，通常虚拟机如果存在打印机的话COM1端口会被占用，所以一般会把打印机删除或者命名管道使用其他端口</p>
-<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/port.png" class="" title="COM端口"></li>
-<li><p>关闭数字签名校验</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /<span class="built_in">set</span> nointegritychecks on</span><br><span class="line">bcdedit /<span class="built_in">set</span> loadoptions DDISABLE_INTEGRITY_CHECKS</span><br></pre></td></tr></table></figure></li>
-<li><p>复制当前引导项，记录输出的ID</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /<span class="built_in">copy</span> &#123;current&#125; /d DriverDebugEntry</span><br></pre></td></tr></table></figure></li>
-<li><p>激活debug</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /debug &#123;ID&#125; ON</span><br><span class="line">bcdedit /bootdebug &#123;ID&#125; ON</span><br><span class="line">bcdedit /<span class="built_in">set</span> &#123;ID&#125; testsigning on</span><br></pre></td></tr></table></figure></li>
-<li><p>引导选择超时设置</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">bcdedit /timeout <span class="number">10</span></span><br></pre></td></tr></table></figure></li>
-</ol>
-<img src="/2022/03/10/Windows%E9%A9%B1%E5%8A%A8%E5%8F%8C%E6%9C%BA%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cmdres.png" class="" title="bcdedit执行结果">
-
-<h2 id="启动Windbg"><a href="#启动Windbg" class="headerlink" title="启动Windbg"></a>启动Windbg</h2><p>在Host打开命令行，进入Windbg.exe目录下（注意区分x86/x64），输入</p>
-<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line">./windbg.exe <span class="literal">-b</span> <span class="literal">-k</span> com:pipe,port=\\.\pipe\debugger,resets=<span class="number">0</span>,reconnect <span class="literal">-y</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>注：port对应虚拟机所设置的命名管道</strong></p>
-<p>这时windbg会等待连接，重启虚拟机，在引导选择时选择刚才创建的引导项，可以在Windbg中看到连接成功，并自动中断，输入<code>g</code>进入系统，即可进行驱动调试。</p>
-<h1 id="VirtualKD-VMware"><a href="#VirtualKD-VMware" class="headerlink" title="VirtualKD + VMware"></a>VirtualKD + VMware</h1><blockquote>
-<p><a href="https://github.com/4d61726b/VirtualKD-Redux">4d61726b/VirtualKD-Redux: VirtualKD-Redux - A revival and modernization of VirtualKD (github.com)</a></p>
-</blockquote>
-<p>手动进行引导设置操作比较复杂，所以可以使用开源工具<strong>VirtualKD</strong>进行快速设置，其支持VMware以及Vbox</p>
-<ol>
-<li><p>在VirtualKD目录下target32或target64（对应虚拟机架构）拷贝到虚拟机中执行install进行安装</p>
-</li>
-<li><p>在主机中打开vmmon.exe，设置调试器路径</p>
-</li>
-<li><p>重启虚拟机在引导选择时按<strong>F8</strong>禁用签名校验，如果引导选择界面为windows新版的选择界面（不是传统上下键选择），则在高级设置里进行签名校验禁用</p>
-</li>
-<li><p>VirtualKD会自动打开调试器，按<code>g</code>即可进入系统</p>
-</li>
-</ol>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 归档 </tag>
+            
+            <tag> C++ </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>C++走过的路-使用cin保留小数位数</title>
+      <link href="/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E4%BD%BF%E7%94%A8cin%E4%BF%9D%E7%95%99%E5%B0%8F%E6%95%B0%E4%BD%8D%E6%95%B0/"/>
+      <url>/2019/04/29/C-%E8%B5%B0%E8%BF%87%E7%9A%84%E8%B7%AF-%E4%BD%BF%E7%94%A8cin%E4%BF%9D%E7%95%99%E5%B0%8F%E6%95%B0%E4%BD%8D%E6%95%B0/</url>
+      
+        <content type="html"><![CDATA[<blockquote><p>闲时把大一刚开始学C++时遇到的一些小问题记得笔记转移过来，顺便重温了一下当时（^_^）</p></blockquote><p><strong>以保留2位小数为例,代码如下:</strong></p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;iostream&gt;</span><br><span class="line">#include &lt;iomanip&gt;</span><br><span class="line">using namespace std;</span><br><span class="line"></span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    double a;</span><br><span class="line">    cin&gt;&gt;a;</span><br><span class="line">    cout&lt;&lt;setiosflags(ios::fixed)&lt;&lt;setprecision(2)&lt;&lt;a&lt;&lt;endl;//fixed为实数输出，若改为scientifitic则是科学技术法输出；setprecision(2)此处表示设置精度为2</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
       <categories>
-        <category>Windows驱动</category>
+          
+          <category> C++ </category>
+          
       </categories>
-      <tags>
-        <tag>开发</tag>
-        <tag>Windows驱动</tag>
-      </tags>
-  </entry>
+      
+      
+        <tags>
+            
+            <tag> 归档 </tag>
+            
+            <tag> C++ </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>调色板图像隐写</title>
+      <link href="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/"/>
+      <url>/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/</url>
+      
+        <content type="html"><![CDATA[<h2 id="一、实验目的"><a href="#一、实验目的" class="headerlink" title="一、实验目的"></a>一、实验目的</h2><p>了解调色板图像的特点，掌握基于调色板图像的信息隐藏原理，设计并实现一种基于调色板图像的信息隐藏算法。</p><span id="more"></span><h2 id="二、实验环境"><a href="#二、实验环境" class="headerlink" title="二、实验环境"></a>二、实验环境</h2><ul><li>Windows XP或Vista操作系统；</li><li>Matlab 7.1版本软件；</li><li>调色板图像。</li></ul><h2 id="三、原理简介"><a href="#三、原理简介" class="headerlink" title="三、原理简介"></a>三、原理简介</h2><p>调色板图像含有一个不超过256种颜色的调色板，并对应每种颜色的R、G、B三种分量的值，图像内容中的每个像素存储的是一个不超过8比特的索引值，其指向调色板中的对应颜色就是图像的真实色彩。大部分图像用到的颜色数小于256种，甚至小于128种，因此可以在调色板中隐藏秘密信息。<br>调色板图像的调色板中最多包含256种颜色，若改变这些颜色的排列顺序并相应地改变图像像素数据，不会对图像内容造成任何影响。因此隐藏秘密信息最简单的方法就是重新排列调色板中的这些颜色，同时修改索引值，但是许多软件生成的调色板都是按照亮度和使用频率排列的，如果在调色板中打乱颜色会使其毫无隐藏可言。如果调色板颜色小于128种，可复制一个调色板，得到一个扩展的周色板，隐藏0使用原始索引值，隐藏1使用扩展索引值，但是重复颜色的调色板会引起使用者怀疑。<br>本节中使用另外一种方法来隐藏信息，对于调色板中的每-种颜色，可以通过修改颜色的蓝色分量（人眼对于绿色分量最为敏感，对蓝色分量最不敏感）来增加一种接近的但不完全相同的颜色，这样就形成一个扩展的调色板。嵌人算法如下:对调色板中所有颜色，把像素点的蓝色分量增加，然后将这种颜色添加到调色板中形成一个扩展调色板。根据需要嵌人的消息长度，随机选取隐藏的位置，当嵌人0时，使用原调色板中的颜色，当嵌人1时，使用扩展后调色板中的颜色。<br>提取时，需要知道原始调色板的长度、随机选择的种子数和隐藏的信息数量，对于选中的像素点，如果使用原调色板中的颜色，提取信息0，如果使用扩展调色板中的颜色，提取信息1。</p><h2 id="四、实验步骤"><a href="#四、实验步骤" class="headerlink" title="四、实验步骤"></a>四、实验步骤</h2><blockquote><p>待加密信息为 you find me!</p></blockquote><img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex.bmp" class="" title="原始图像"><img src="/2019/04/23/%E8%B0%83%E8%89%B2%E6%9D%BF%E5%9B%BE%E5%83%8F%E9%9A%90%E5%86%99/lenaindex1.bmp" class="" title="携密图像"><p>1、嵌入秘密信息</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">[x,map] = imread(&#x27;lenaindex.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">wx = x;</span><br><span class="line">[row col] = size(wx);</span><br><span class="line">wmap = map;</span><br><span class="line"></span><br><span class="line">msgfid = fopen(&#x27;hidden.txt&#x27;,&#x27;r&#x27;);</span><br><span class="line">[msg,count] = fread(msgfid);</span><br><span class="line">fclose(msgfid);</span><br><span class="line">count = count * 8;</span><br><span class="line">msg = str2bit(msg);</span><br><span class="line">msg = msg&#x27;;</span><br><span class="line"></span><br><span class="line">%构造扩展map</span><br><span class="line">oplength = 0;</span><br><span class="line">for i = 1:256</span><br><span class="line">    if map(i,1) ~= 0&amp;&amp;map(i,2) ~= 0&amp;&amp;map(i,3) ~= 0</span><br><span class="line">        oplength = oplength + 1;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">for i = oplength + 1:oplength * 2</span><br><span class="line">    wmap(i,1) = map(i - oplength, 1);</span><br><span class="line">    wmap(i,2) = map(i - oplength, 2);</span><br><span class="line">    %蓝色分量加0.0001</span><br><span class="line">    wmap(i,3) = map(i - oplength, 3) + 0.0001; </span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">%确定隐藏位置</span><br><span class="line">key = 1234;</span><br><span class="line">[row col] = randselect(x,count,key);</span><br><span class="line"></span><br><span class="line">for i = 1:count</span><br><span class="line">    if str2num(msg(i,1)) == 1</span><br><span class="line">        wx(row(i),col(i)) = x(row(i),col(i)) + oplength;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">imwrite(wx,map,&#x27;lenaindex1.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">figure;</span><br><span class="line">subplot(1,2,1);imshow(&#x27;lenaindex.bmp&#x27;);title(&#x27;原始图像&#x27;);</span><br><span class="line">subplot(1,2,2);imshow(&#x27;lenaindex1.bmp&#x27;);title(&#x27;携密图像&#x27;);</span><br></pre></td></tr></table></figure><p>2、提取秘密信息</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">clc;</span><br><span class="line">clear;</span><br><span class="line"></span><br><span class="line">%读入载体图像</span><br><span class="line">[x,map] = imread(&#x27;lenaindex1.bmp&#x27;,&#x27;bmp&#x27;);</span><br><span class="line">key = 1234;</span><br><span class="line">count = 96;</span><br><span class="line">for i = 1:count</span><br><span class="line">    msg(i, 1) = 0;</span><br><span class="line">end</span><br><span class="line"></span><br><span class="line">% 找到扩展起始颜色位置</span><br><span class="line">oplength = 64;</span><br><span class="line"></span><br><span class="line">[row col] = randselect(x,count,key);</span><br><span class="line">for i = 1:count</span><br><span class="line">    if x(row(i),col(i))&gt;oplength</span><br><span class="line">        msg(i,1) = 1;</span><br><span class="line">    else</span><br><span class="line">        msg(i,1) = 0;</span><br><span class="line">    end</span><br><span class="line">end</span><br><span class="line">out = bit2str(msg);</span><br><span class="line">fid = fopen(&#x27;message.txt&#x27;,&#x27;wt&#x27;);</span><br><span class="line">fwrite(fid,out);</span><br><span class="line">fclose(fid);</span><br></pre></td></tr></table></figure><p>3、随机位置函数</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">function [row col] = randselect(x,count,key)</span><br><span class="line">[m,n] = size(x);</span><br><span class="line">distance1 = ceil(m*n/count);</span><br><span class="line">distance2 = distance1 - 2;</span><br><span class="line">if distance2 == 2</span><br><span class="line">    error(&#x27;载体太小&#x27;);</span><br><span class="line">end</span><br><span class="line">rand(&#x27;state&#x27;,key);</span><br><span class="line">a = rand(1,count);</span><br><span class="line">row = zeros([1 count]);</span><br><span class="line">col = zeros([1 count]);</span><br><span class="line">r = 1;</span><br><span class="line">c = 1;</span><br><span class="line">row(1,1) = r;</span><br><span class="line">col(1,1) = c;</span><br><span class="line">for i=2:count</span><br><span class="line">    if a(i)&gt;=0.5</span><br><span class="line">        c=c+distance1;</span><br><span class="line">    else</span><br><span class="line">        c=c+distance2;</span><br><span class="line">    end</span><br><span class="line">    if c&gt;n</span><br><span class="line">        r=r+1;</span><br><span class="line">        if r&gt;m</span><br><span class="line">            error(&#x27;载体太小&#x27;);</span><br><span class="line">        end</span><br><span class="line">        c = mod(c,n);</span><br><span class="line">        if c==0</span><br><span class="line">            c=1;</span><br><span class="line">        end</span><br><span class="line">    end</span><br><span class="line">    row(1,i)=r;</span><br><span class="line">    col(1,i)=c;</span><br><span class="line">end</span><br></pre></td></tr></table></figure><p>4、bit2str</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">function [msg] = bit2str(bin)</span><br><span class="line">[row col] = size(bin);</span><br><span class="line">bin = reshape(bin,[8 row/8]);</span><br><span class="line">bin = bin&#x27;;</span><br><span class="line">bin = num2str(bin);</span><br><span class="line">msg = bin2dec(bin);</span><br><span class="line">end</span><br></pre></td></tr></table></figure><p>5、str2bit</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">function [bin] = str2bit(msg)</span><br><span class="line">bin = dec2base(msg,2,8);</span><br><span class="line">[row col] = size(bin);</span><br><span class="line">bin = reshape(bin.&#x27;,[1 row*col]);</span><br><span class="line">end</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
+      <categories>
+          
+          <category> MISC </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> MISC </tag>
+            
+            <tag> 图像 </tag>
+            
+            <tag> 隐写 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>PWN学习之路 - 字符串格式化漏洞总结</title>
+      <link href="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/"/>
+      <url>/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/</url>
+      
+        <content type="html"><![CDATA[<h2 id="一、函数原型"><a href="#一、函数原型" class="headerlink" title="一、函数原型"></a>一、函数原型</h2><p><em><em>int printf(const char</em> format,…)</em>*<br>常规用法</p><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br></pre></td></tr></table></figure><p>另外一种用法</p><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> str[<span class="number">10</span>];</span><br><span class="line"><span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>,str);</span><br><span class="line"><span class="built_in">printf</span>(str)</span><br></pre></td></tr></table></figure><p>第一种用法没有错误，但是在第二种方法中没有规定<strong>format</strong>参数，用户便可以通过构造str来实现内存的任意读写。<br>printf函数的格式化字符串常见的有</p><blockquote><p>%d，%f，%c，%s，%x（16进制数，没有0x），%p（16进制数，有0x）等。<br>%n ，它的功能是将%n之前打印出来的字符个数，赋值给一个变量。<br>%hn，%hhn，%lln，分别为写入目标空间2字节，1字节，8字节。</p></blockquote><p>注意是对应参数（这个参数是指针）的对应的地址开始起几个字节。不要觉得%lln，取的是8个字节的指针，%n取的就是4个字节的指针，取的是多少字节的指针只跟程序的位数有关，如果是32位的程序，%n取的就是4字节指针，64位取的就是8字节指针，这是因为不同位数的程序，每个参数对应的字节数是不同的。</p><h2 id="二、原理分析"><a href="#二、原理分析" class="headerlink" title="二、原理分析"></a>二、原理分析</h2><p>以一段代码为例</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#include&lt;stdio.h&gt;</span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">  char a[100];</span><br><span class="line">  scanf(&quot;%s&quot;,a);</span><br><span class="line">  printf(a);</span><br><span class="line">  return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/1.png" class="" title="运行结果"><p>第七个参数就是AAAA在栈中的位置</p><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/before.png" class="" title="输入前"><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/behind.png" class="" title="输入后"><p><em>PS：<br>linux下直接读取第七个参数的方法:<br><strong>%&lt; number &gt;$x</strong> 是直接读取第number个位置的参数，同样可以用在%n，%d等等。<br>但是需要注意64位程序，前6个参数是存在寄存器中的，从第7个参数开始才会出现在栈中，所以栈中从格式化串开始的第一个，应该是</em><em>%7$n**。</em></p><h2 id="三、读取内存"><a href="#三、读取内存" class="headerlink" title="三、读取内存"></a>三、读取内存</h2><p>输入的字符串的前4个字节如果是一个有效的字符串的首地址，就可以用%s将其打印出来，做到任意内存读取。如果不是有效的字符串，会出现段错误。</p><h2 id="四、修改内存"><a href="#四、修改内存" class="headerlink" title="四、修改内存"></a>四、修改内存</h2><blockquote><p>局部变量保存在栈中</p></blockquote><p>前提需要关闭PIE保护，不然局部变量的地址是随机的。<br>例如前四个字节地址在0xABCDEFGH<br>构造字符串如下</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">`printf &quot;\xGH\xEF\xCD\xAB&quot;`%08x%08x%08x%08x%08x%08x%08n</span><br><span class="line">//`printf &quot;\xGH\xEF\xCD\xAB&quot;`%7$n</span><br></pre></td></tr></table></figure><h2 id="五、实战"><a href="#五、实战" class="headerlink" title="五、实战"></a>五、实战</h2><p><strong>CGfsb</strong><br>在IDA中源码如下</p><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/ori.png" class="" title="源码"><p>确定偏移量</p><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/offset.png" class="" title="确定偏移量"><p>payload</p><img src="/2019/04/06/PWN%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B7%AF-%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/payload.png" class="" title="payload">]]></content>
+      
+      
+      <categories>
+          
+          <category> PWN </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> PWN </tag>
+            
+            <tag> 字符串 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
 </search>
